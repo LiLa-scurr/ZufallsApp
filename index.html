@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     
-    <!-- App-Icon für das iPhone (Homescreen) -->
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -26,21 +25,28 @@
             perspective: 2000px; 
         }
 
-        /* Hintergrund-Ebene für 00.jpg */
+        /* Hintergrund-Ebene: Lädt ohne Gradient, skaliert sanft ein */
         .bg-layer {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('00.jpg');
+            background-image: url('00.jpg');
             background-size: cover;
             background-position: center;
             z-index: -2; 
-            transition: filter 0.6s ease, transform 0.6s ease; 
+            transition: filter 1s ease, transform 2s ease, opacity 2s ease; 
+            transform: scale(1.1);
+            opacity: 0; /* Startet unsichtbar für den Fade-In Effekt */
+        }
+
+        .bg-loaded {
+            opacity: 1;
             transform: scale(1);
         }
 
         .bg-blurred {
-            filter: blur(15px);
-            transform: scale(1.08); 
+            /* Dunkler Gradient wird hier simuliert oder via Blur erzeugt, damit Text lesbar ist */
+            filter: blur(15px) brightness(0.5);
+            transform: scale(1.05); 
         }
 
         /* Container für die einzelnen "Seiten" */
@@ -54,20 +60,26 @@
             padding: 20px;
             box-sizing: border-box;
             text-align: center;
+            opacity: 0;
+            transition: opacity 1s ease;
         }
 
+        .view.visible { opacity: 1; }
         .hidden { display: none !important; }
 
-        /* Der mehrzeilige Titel für Lotti */
+        /* Überschriften */
         h1 {
             font-size: 28px;
             line-height: 1.4;
             margin-bottom: 35px;
             text-shadow: 0 3px 8px rgba(0,0,0,0.6);
             font-weight: 800;
+            z-index: 2;
         }
 
-        /* DUAL-IMAGE-CONTAINER (GALERIE) */
+        /* ==========================================
+           GALERIE & TRANSITIONS
+           ========================================== */
         .gallery-wrapper {
             position: relative;
             width: 90%;
@@ -94,7 +106,6 @@
         .gallery-wrapper img#img-old { opacity: 1; z-index: 2; }
         .gallery-wrapper img#img-new { z-index: 3; }
 
-        /* TRANSITIONS */
         .gallery-wrapper.mode-push #img-old { animation: pushOld 0.6s cubic-bezier(0.76, 0, 0.24, 1) forwards; }
         .gallery-wrapper.mode-push #img-new { animation: pushNew 0.6s cubic-bezier(0.76, 0, 0.24, 1) forwards; }
         @keyframes pushOld { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-140%); opacity: 0; } }
@@ -127,10 +138,12 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             position: relative;
-            z-index: 5; /* Text bleibt vor den herabfallenden Herzen lesbar */
+            z-index: 5;
         }
 
-        /* Buttons */
+        /* ==========================================
+           BUTTONS & EFFEKTE
+           ========================================== */
         button { 
             margin-top: 15px;
             padding: 16px 35px; 
@@ -140,7 +153,7 @@
             background: #007aff; 
             color: white; 
             font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,122,255,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             cursor: pointer;
             line-height: 1.3; 
             -webkit-tap-highlight-color: transparent;
@@ -148,20 +161,19 @@
             position: relative;
             z-index: 5;
         }
-        button:active { transform: scale(0.95); }
 
-        .btn-anniversary { 
-            background: linear-gradient(135deg, #feb632 0%, #fd4b44 35%, #bf219d 70%, #7022e0 100%); 
-            box-shadow: 0 6px 15px rgba(253, 75, 68, 0.4); 
-        } 
-        
-        .btn-back { background: #545456; font-size: 14px; padding: 10px 20px; margin-top: 30px; } 
+        /* Pulse-Effekt statt Vibration */
+        .pulse { animation: pulse 0.3s ease-out; }
+        @keyframes pulse { 
+            0% { transform: scale(1); } 
+            50% { transform: scale(0.92); } 
+            100% { transform: scale(1); } 
+        }
 
+        /* Regenbogen-Glow für die Main-Buttons */
         .btn-rainbow {
             position: relative;
             background: #007aff; 
-            z-index: 1; 
-            margin-top: 25px;
         }
 
         .btn-rainbow::before {
@@ -172,7 +184,7 @@
             border-radius: 34px; 
             background: linear-gradient(90deg, #ff007f, #7f00ff, #007aff, #00ff7f, #fff000, #ff007f);
             background-size: 400% 400%;
-            filter: blur(8px);
+            filter: blur(6px);
             opacity: 0.85;
             animation: rainbowMovement 5s linear infinite;
         }
@@ -183,13 +195,20 @@
             100% { background-position: 0% 50%; }
         }
 
+        /* Der Jahrestag-Farbverlauf */
+        .btn-anniversary { 
+            background: linear-gradient(135deg, #feb632 0%, #fd4b44 35%, #bf219d 70%, #7022e0 100%); 
+        } 
+        
+        .btn-back { background: #545456; font-size: 14px; padding: 10px 20px; margin-top: 30px; } 
+
         /* ==========================================
-           NEU: STYLING FÜR DEN HERZCHEN-REGEN
+           HERZCHEN-REGEN
            ========================================== */
         .heart-particle {
             position: fixed;
             top: -20px;
-            font-size: 16px; /* Relativ klein, wie gewünscht */
+            font-size: 16px; 
             user-select: none;
             pointer-events: none;
             z-index: 4;
@@ -197,29 +216,17 @@
         }
 
         @keyframes fallAndSway {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 0;
-            }
-            10% {
-                opacity: 0.85;
-            }
-            90% {
-                opacity: 0.85;
-            }
-            100% {
-                transform: translateY(105vh) rotate(360deg);
-                opacity: 0;
-            }
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.85; }
+            90% { opacity: 0.85; }
+            100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Das feste Hintergrund-Element -->
     <div id="bg-layer" class="bg-layer"></div>
 
-    <!-- SEITE 1: DAS MENÜ -->
     <div id="view-menu" class="view">
         <h1>
             ✨✨✨<br>
@@ -227,33 +234,30 @@
             für Lotti<br>
             ✨✨✨
         </h1>
-        <button onclick="switchView('gallery')">Zu den Lichtbildern</button>
+        <button class="btn-rainbow" onclick="triggerPulse(this); switchView('gallery')">Zu den Lichtbildern</button>
         
-        <!-- Triggert beim Klick den View-Wechsel UND den Herzchen-Regen -->
-        <button onclick="switchView('text'); startHeartRain();" class="btn-anniversary">
+        <button class="btn-rainbow btn-anniversary" onclick="triggerPulse(this); startHeartRain(); switchView('text');">
             Für meine Mausi<br>zum Jahrestag
         </button>
     </div>
 
-    <!-- SEITE 2: DIE GALERIE -->
     <div id="view-gallery" class="view hidden">
         <div id="gallery-wrapper" class="gallery-wrapper">
             <img id="img-old" src="" alt="">
             <img id="img-new" src="" alt="">
         </div>
         
-        <button onclick="showRandom()" class="btn-rainbow">Gute-Laune-Knopf</button>
-        <button onclick="switchView('menu')" class="btn-back">⬅ Zurück zum Menü</button>
+        <button class="btn-rainbow" onclick="triggerPulse(this); showRandom()">Gute-Laune-Knopf</button>
+        <button class="btn-back" onclick="switchView('menu')">⬅ Zurück zum Menü</button>
     </div>
 
-    <!-- SEITE 3: DER EXTRA-TEXT -->
     <div id="view-text" class="view hidden">
         <h1>Für meine liebste Lotti &lt;3</h1>
         <div class="text-box">
             <p>Hier ist dein ganz persönlicher Extra-Text! ☀️</p>
             <p>Egal wie stressig der Tag gerade ist: Atme einmal tief durch, lass die Schultern locker und schenk dir selbst ein Lächeln. Du machst das großartig und bist genau richtig, so wie du bist!</p>
         </div>
-        <button onclick="switchView('menu')" class="btn-back">⬅ Zurück zum Menü</button>
+        <button class="btn-back" onclick="switchView('menu')">⬅ Zurück zum Menü</button>
     </div>
 
 <script>
@@ -269,13 +273,43 @@
     const transitions = ['mode-push', 'mode-flip', 'mode-drop', 'mode-zoom'];
     let isAnimating = false;
 
+    // Start-Animation beim Laden der Seite
+    window.onload = () => {
+        const bg = document.getElementById('bg-layer');
+        // Lässt 00.jpg sanft erscheinen
+        bg.classList.add('bg-loaded');
+        // Blendet das Menü nach 0.5s weich ein
+        setTimeout(() => {
+            document.getElementById('view-menu').classList.remove('hidden');
+            // Timeout für CSS Transition
+            setTimeout(() => {
+                document.getElementById('view-menu').classList.add('visible');
+            }, 50);
+        }, 500);
+    };
+
+    // Optisches Feedback beim Tippen (Pulse-Effekt)
+    function triggerPulse(btn) {
+        btn.classList.add('pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 300);
+    }
+
+    // Wechsel zwischen den Seiten
     function switchView(viewId) {
-        document.getElementById('view-menu').classList.add('hidden');
-        document.getElementById('view-gallery').classList.add('hidden');
-        document.getElementById('view-text').classList.add('hidden');
+        // Erst alle Views unsichtbar machen
+        document.querySelectorAll('.view').forEach(v => {
+            v.classList.remove('visible');
+            v.classList.add('hidden');
+        });
 
-        document.getElementById('view-' + viewId).classList.remove('hidden');
+        // Ziel-View anzeigen
+        const target = document.getElementById('view-' + viewId);
+        target.classList.remove('hidden');
+        
+        // Timeout für weichen Fade-in
+        setTimeout(() => target.classList.add('visible'), 50);
 
+        // Hintergrund anpassen (Blur + Abdunkeln für Lesbarkeit auf Unterseiten)
         const bg = document.getElementById('bg-layer');
         if (viewId === 'menu') {
             bg.classList.remove('bg-blurred');
@@ -283,17 +317,15 @@
             bg.classList.add('bg-blurred');
         }
 
+        // Erstes Bild laden, falls Galerie geöffnet wird
         if (viewId === 'gallery') {
             showRandom();
         }
     }
 
+    // Bilder-Wechsel Logic
     function showRandom() {
         if (images.length === 0 || isAnimating) return;
-
-        if (navigator.vibrate) {
-            navigator.vibrate(50);
-        }
 
         const randomIndex = Math.floor(Math.random() * images.length);
         const chosenImage = images[randomIndex];
@@ -318,40 +350,29 @@
         };
     }
 
-    // ==========================================
-    // NEU: JAVASCRIPT FÜR DEN HERZCHEN-REGEN
-    // ==========================================
+    // Herzchen-Regen
     function startHeartRain() {
         const heartIcons = ['❤️', '💖', '💝', '💕', '🌸'];
         
-        // Erzeugt alle 100 Millisekunden ein neues Herzchen
         const rainInterval = setInterval(() => {
             const heart = document.createElement('div');
             heart.classList.add('heart-particle');
             
-            // Zufälliges Herz/Symbol wählen
             heart.innerText = heartIcons[Math.floor(Math.random() * heartIcons.length)];
-            
-            // Zufällige Position auf der horizontalen Achse (0% bis 100% der Bildschirmbreite)
             heart.style.left = Math.random() * 100 + 'vw';
-            
-            // Zufällige Größe (zwischen 12px und 20px – schön dezent)
             heart.style.fontSize = Math.floor(Math.random() * 8) + 12 + 'px';
             
-            // Zufällige Fallgeschwindigkeit (zwischen 2.5 und 4.5 Sekunden für den Weg nach unten)
             const duration = Math.random() * 2 + 2.5;
             heart.style.animationDuration = duration + 's';
             
             document.body.appendChild(heart);
             
-            // Löscht das einzelne Herz automatisch aus dem Speicher, sobald es unten angekommen ist
             setTimeout(() => {
                 heart.remove();
             }, duration * 1000);
             
         }, 100);
 
-        // Nach 4 Sekunden hört es auf, neue Herzen zu regnen, damit die Seite zur Ruhe kommt
         setTimeout(() => {
             clearInterval(rainInterval);
         }, 4000);
