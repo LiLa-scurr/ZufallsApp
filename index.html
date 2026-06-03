@@ -49,7 +49,7 @@
         }
 
         /* ==========================================
-           LADEANIMATION (HERZ) - ANGEPASST
+           LADEANIMATION (HERZ)
            ========================================== */
         .heart-loader-wrapper {
             position: fixed;
@@ -72,7 +72,6 @@
             width: 100%; 
             height: 100%;
             background-color: rgba(255, 255, 255, 0.15);
-            /* Neue SVG mit mehr "Padding" am Rand, damit nichts abschneidet */
             -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
             -webkit-mask-size: contain;
             -webkit-mask-repeat: no-repeat;
@@ -91,15 +90,14 @@
             background: #fd4b44;
             left: 50%;
             margin-left: -125px;
-            top: 150px; /* Startet unsichtbar unter dem Herz */
+            top: 150px; 
             border-radius: 40%; 
-            /* Fill-Animation dauert jetzt exakt 2 Sekunden */
             animation: fillFluid 2s ease-in-out forwards, spinFluid 3s linear infinite;
         }
 
         @keyframes fillFluid {
             0% { top: 150px; }
-            100% { top: -60px; } /* Fährt nach oben, bis das Herz komplett rot ist */
+            100% { top: -60px; } 
         }
 
         @keyframes spinFluid {
@@ -227,10 +225,7 @@
             100% { transform: scale(1); } 
         }
 
-        .btn-rainbow {
-            position: relative;
-            background: #007aff; 
-        }
+        .btn-rainbow { position: relative; background: #007aff; }
 
         .btn-rainbow::before {
             content: '';
@@ -387,6 +382,17 @@
     </div>
 
 <script>
+    // ==========================================
+    // AUDIO-MAP FÜR DEINE BILDER
+    // ==========================================
+    const audioMap = {
+        '05.jpg': 'lachen.mp3',
+        '24.jpg': 'tada.mp3',
+        '42.jpg': 'hallo.mp3'
+    };
+
+    let currentAudio = null;
+
     const images = [];
     for (let i = 1; i <= 51; i++) {
         if (i < 10) {
@@ -405,23 +411,29 @@
         const bg = document.getElementById('bg-layer');
         bg.classList.add('bg-loaded');
         
-        // Nach exakt 2 Sekunden (wenn das Herz voll ist)
+        // Phase 1: Nach exakt 2 Sekunden ist das Herz voll und fadet aus
         setTimeout(() => {
             const loader = document.getElementById('heart-loader');
             loader.classList.add('fade-out');
             
-            document.getElementById('view-menu').classList.remove('hidden');
+            // Phase 2: Eine kleine Pause (800ms), in der nur der Hintergrund zu sehen ist
             setTimeout(() => {
-                document.getElementById('view-menu').classList.add('visible');
-                setTimeout(() => loader.style.display = 'none', 500);
-            }, 50);
+                loader.style.display = 'none'; // Herz aus dem Weg räumen
 
-            // Pop-Up erscheint nach weiteren 2,5 Sekunden
-            setTimeout(() => {
-                showPopup();
-            }, 1000); 
+                // Menü wird sanft eingeblendet
+                document.getElementById('view-menu').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('view-menu').classList.add('visible');
+                }, 50);
 
-        }, 2000); // <-- Timing auf 2 Sekunden (2000ms) angepasst
+                // Phase 3: Pop-Up erscheint erst, wenn das Menü da ist (weitere 1,5s später)
+                setTimeout(() => {
+                    showPopup();
+                }, 1500); 
+
+            }, 800); // Dauer des Herz-Fadeouts (500ms) + 300ms Extra-Pause = 800ms
+
+        }, 2000); 
     };
 
     function showPopup() {
@@ -459,6 +471,12 @@
         const bg = document.getElementById('bg-layer');
         if (viewId === 'menu') {
             bg.classList.remove('bg-blurred');
+            
+            // Audio stoppen, falls noch etwas spielt und wir zurück ins Menü gehen
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
         } else {
             bg.classList.add('bg-blurred');
         }
@@ -479,6 +497,20 @@
         } while (chosenImage === lastShownImage && images.length > 1);
         
         lastShownImage = chosenImage;
+        
+        // ==========================================
+        // AUDIO-LOGIK
+        // ==========================================
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio = null;
+        }
+
+        if (audioMap[chosenImage]) {
+            currentAudio = new Audio(audioMap[chosenImage]);
+            currentAudio.play().catch(error => console.log("Ton konnte nicht abgespielt werden:", error));
+        }
         
         const imgOld = document.getElementById('img-old');
         const imgNew = document.getElementById('img-new');
