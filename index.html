@@ -223,7 +223,7 @@
         }
 
         /* ==========================================
-           POP-UP MODAL (NEU)
+           POP-UP MODAL
            ========================================== */
         .popup-overlay {
             position: fixed;
@@ -293,7 +293,7 @@
         <div class="popup-content">
             <h2>Achtung Schabernack!</h2>
             <p>Für lustige aufmunternde Bilder klicke auf den <b>"Zu den Lichtbildern"</b>-Knopf, für einen lieben Text auf den <b>"Für meine Mausi zum Jahrestag"</b>-Knopf.</p>
-            <p>Viel Vergnügen und immer schön frech bleiben. 😉</p>
+            <p>Viel Vergnügen und immer schön frech bleiben. 😘🫶🏼</p>
             <button onclick="triggerPulse(this); closePopup()">Verstanden!</button>
         </div>
     </div>
@@ -346,6 +346,7 @@
 
     const transitions = ['mode-push', 'mode-flip', 'mode-drop', 'mode-zoom'];
     let isAnimating = false;
+    let lastShownImage = ""; // Speichert das zuletzt gezeigte Bild
 
     // Start-Animation beim Laden der Seite
     window.onload = () => {
@@ -359,10 +360,10 @@
                 document.getElementById('view-menu').classList.add('visible');
             }, 50);
 
-            // NEU: Genau 3 Sekunden NACHDEM das Menü sichtbar wurde, kommt das Pop-Up
+            // Pop-Up erscheint jetzt nach 2,5 Sekunden statt 3 Sekunden
             setTimeout(() => {
                 showPopup();
-            }, 3000); 
+            }, 2500); 
 
         }, 2500);
     };
@@ -417,12 +418,20 @@
         }
     }
 
-    // Bilder-Wechsel Logic
+    // Bilder-Wechsel Logic mit "Keine direkten Doppelungen"-Regel
     function showRandom() {
         if (images.length === 0 || isAnimating) return;
 
-        const randomIndex = Math.floor(Math.random() * images.length);
-        const chosenImage = images[randomIndex];
+        let chosenImage;
+        
+        // Neu-Würfeln, solange das neu gewürfelte Bild das gleiche wie vorher ist.
+        do {
+            const randomIndex = Math.floor(Math.random() * images.length);
+            chosenImage = images[randomIndex];
+        } while (chosenImage === lastShownImage && images.length > 1);
+        
+        // Das neue Bild für die nächste Runde merken
+        lastShownImage = chosenImage;
         
         const imgOld = document.getElementById('img-old');
         const imgNew = document.getElementById('img-new');
