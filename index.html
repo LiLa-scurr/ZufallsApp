@@ -49,6 +49,64 @@
             transform: scale(1.05); 
         }
 
+        /* ==========================================
+           NEU: LADEANIMATION (HERZ)
+           ========================================== */
+        .heart-loader-wrapper {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px; 
+            height: 140px;
+            z-index: 50;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .heart-loader-wrapper.fade-out {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(1.1);
+            pointer-events: none;
+        }
+
+        .heart-mask {
+            position: absolute;
+            width: 100%; 
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            /* SVG-Herz als Maske für den Flüssigkeits-Container */
+            -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M100 185.5c-4.4 0-8.8-1.7-12.1-5C35 128.6 15 109.8 15 78.5 15 48.4 38.4 25 68.5 25c16.9 0 32.5 8 41.5 21 9-13 24.6-21 41.5-21 30.1 0 53.5 23.4 53.5 53.5 0 31.3-20 50.1-72.9 102-3.3 3.3-7.7 5-12.1 5z'/%3E%3C/svg%3E");
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M100 185.5c-4.4 0-8.8-1.7-12.1-5C35 128.6 15 109.8 15 78.5 15 48.4 38.4 25 68.5 25c16.9 0 32.5 8 41.5 21 9-13 24.6-21 41.5-21 30.1 0 53.5 23.4 53.5 53.5 0 31.3-20 50.1-72.9 102-3.3 3.3-7.7 5-12.1 5z'/%3E%3C/svg%3E");
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            overflow: hidden;
+        }
+
+        .heart-fluid {
+            position: absolute;
+            width: 280px; 
+            height: 280px;
+            background: #fd4b44; /* Passt zum Jahrestag-Button */
+            left: 50%;
+            margin-left: -140px;
+            bottom: -310px; /* Startet weit unter dem Herzen */
+            border-radius: 40%; /* Erzeugt die Wellenform bei Rotation */
+            animation: fillFluid 2.5s cubic-bezier(0.4, 0.0, 0.2, 1) forwards, spinFluid 3s linear infinite;
+        }
+
+        @keyframes fillFluid {
+            0% { bottom: -310px; }
+            100% { bottom: -30px; } /* Füllt sich bis oben auf */
+        }
+
+        @keyframes spinFluid {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); } /* Erzeugt die "Wellen" */
+        }
+
         /* Container für die einzelnen "Seiten" */
         .view {
             display: flex;
@@ -285,10 +343,14 @@
 </head>
 <body>
 
-    <!-- Hintergrund -->
     <div id="bg-layer" class="bg-layer"></div>
 
-    <!-- Das neue Pop-Up Modal -->
+    <div id="heart-loader" class="heart-loader-wrapper">
+        <div class="heart-mask">
+            <div class="heart-fluid"></div>
+        </div>
+    </div>
+
     <div id="popup-modal" class="popup-overlay hidden">
         <div class="popup-content">
             <h2>Achtung Schabernack!</h2>
@@ -298,8 +360,7 @@
         </div>
     </div>
 
-    <!-- SEITE 1: DAS MENÜ -->
-    <div id="view-menu" class="view">
+    <div id="view-menu" class="view hidden">
         <h1>
             ✨✨✨<br>
             Lustige Lichtbilder<br>
@@ -313,7 +374,6 @@
         </button>
     </div>
 
-    <!-- SEITE 2: DIE GALERIE -->
     <div id="view-gallery" class="view hidden">
         <div id="gallery-wrapper" class="gallery-wrapper">
             <img id="img-old" src="" alt="">
@@ -324,7 +384,6 @@
         <button class="btn-back" onclick="switchView('menu')">⬅ Zurück zum Menü</button>
     </div>
 
-    <!-- SEITE 3: DER EXTRA-TEXT -->
     <div id="view-text" class="view hidden">
         <h1>Für meine liebste Lotti &lt;3</h1>
         <div class="text-box">
@@ -346,24 +405,31 @@
 
     const transitions = ['mode-push', 'mode-flip', 'mode-drop', 'mode-zoom'];
     let isAnimating = false;
-    let lastShownImage = ""; // Speichert das zuletzt gezeigte Bild
+    let lastShownImage = ""; 
 
     // Start-Animation beim Laden der Seite
     window.onload = () => {
         const bg = document.getElementById('bg-layer');
         bg.classList.add('bg-loaded');
         
-        // Nach 2,5 Sekunden wird das Hauptmenü eingeblendet
+        // Nach exakt 2,5 Sekunden (wenn das Herz voll ist)
         setTimeout(() => {
+            // Ladeanimation ausblenden
+            const loader = document.getElementById('heart-loader');
+            loader.classList.add('fade-out');
+            
+            // Menü einblenden
             document.getElementById('view-menu').classList.remove('hidden');
             setTimeout(() => {
                 document.getElementById('view-menu').classList.add('visible');
+                // Das unsichtbare Lade-Herz komplett aus dem Weg räumen
+                setTimeout(() => loader.style.display = 'none', 500);
             }, 50);
 
-            // Pop-Up erscheint jetzt nach 2,5 Sekunden statt 3 Sekunden
+            // Pop-Up erscheint nach weiteren 2,5 Sekunden
             setTimeout(() => {
                 showPopup();
-            }, 1000); 
+            }, 2500); 
 
         }, 2500);
     };
@@ -372,7 +438,6 @@
     function showPopup() {
         const popup = document.getElementById('popup-modal');
         popup.classList.remove('hidden');
-        // Kurzer Delay, damit die CSS-Animation flüssig greift
         setTimeout(() => {
             popup.classList.add('visible');
         }, 50);
@@ -382,7 +447,6 @@
     function closePopup() {
         const popup = document.getElementById('popup-modal');
         popup.classList.remove('visible');
-        // Warten bis die Fade-Out Animation fertig ist, dann ganz verstecken
         setTimeout(() => {
             popup.classList.add('hidden');
         }, 500);
@@ -418,19 +482,17 @@
         }
     }
 
-    // Bilder-Wechsel Logic mit "Keine direkten Doppelungen"-Regel
+    // Bilder-Wechsel Logic
     function showRandom() {
         if (images.length === 0 || isAnimating) return;
 
         let chosenImage;
         
-        // Neu-Würfeln, solange das neu gewürfelte Bild das gleiche wie vorher ist.
         do {
             const randomIndex = Math.floor(Math.random() * images.length);
             chosenImage = images[randomIndex];
         } while (chosenImage === lastShownImage && images.length > 1);
         
-        // Das neue Bild für die nächste Runde merken
         lastShownImage = chosenImage;
         
         const imgOld = document.getElementById('img-old');
