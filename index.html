@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Meine Galerie</title>
+    <style>
+        body { 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background: #1e1e1e; 
+            font-family: -apple-system, sans-serif;
+        }
+        img { 
+            max-width: 90%; 
+            max-height: 65vh; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            object-fit: contain;
+        }
+        #debug {
+            color: #8e8e93;
+            font-size: 14px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        button { 
+            margin-top: 20px;
+            padding: 16px 40px; 
+            font-size: 18px; 
+            border-radius: 30px; 
+            border: none; 
+            background: #007aff; 
+            color: white; 
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,122,255,0.3);
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <img id="display" src="" alt="Zufallsbild">
+    <div id="debug">Lade...</div> 
+    
+    <button onclick="showRandom()">Nächstes Bild</button>
+
+<script>
+    const images = [];
+    
+    // Schleife ohne "./" – sucht direkt nach dem reinen Dateinamen
+    for (let i = 1; i <= 51; i++) {
+        if (i < 10) {
+            images.push('0' + i + '.jpg'); 
+        } else {
+            images.push(i + '.jpg');  
+        }
+    }
+
+    function showRandom() {
+        if (images.length === 0) return;
+
+        const randomIndex = Math.floor(Math.random() * images.length);
+        const chosenImage = images[randomIndex];
+        
+        document.getElementById('display').src = chosenImage;
+        document.getElementById('debug').innerText = "App sucht nach der Datei: " + chosenImage;
+    }
+
+    showRandom();
+</script>
+</body>
+</html>
