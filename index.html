@@ -25,7 +25,7 @@
             perspective: 2000px; 
         }
 
-        /* Hintergrund-Ebene: Lädt ohne Gradient, skaliert sanft ein */
+        /* Hintergrund-Ebene */
         .bg-layer {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -35,7 +35,7 @@
             z-index: -2; 
             transition: filter 1s ease, transform 2s ease, opacity 2s ease; 
             transform: scale(1.1);
-            opacity: 0; /* Startet unsichtbar für den Fade-In Effekt */
+            opacity: 0; 
         }
 
         .bg-loaded {
@@ -44,13 +44,12 @@
         }
 
         .bg-blurred {
-            /* Dunkler Gradient wird hier simuliert oder via Blur erzeugt, damit Text lesbar ist */
             filter: blur(15px) brightness(0.5);
             transform: scale(1.05); 
         }
 
         /* ==========================================
-           NEU: LADEANIMATION (HERZ)
+           LADEANIMATION (HERZ) - ANGEPASST
            ========================================== */
         .heart-loader-wrapper {
             position: fixed;
@@ -72,13 +71,13 @@
             position: absolute;
             width: 100%; 
             height: 100%;
-            background-color: rgba(255, 255, 255, 0.2);
-            /* SVG-Herz als Maske für den Flüssigkeits-Container */
-            -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M100 185.5c-4.4 0-8.8-1.7-12.1-5C35 128.6 15 109.8 15 78.5 15 48.4 38.4 25 68.5 25c16.9 0 32.5 8 41.5 21 9-13 24.6-21 41.5-21 30.1 0 53.5 23.4 53.5 53.5 0 31.3-20 50.1-72.9 102-3.3 3.3-7.7 5-12.1 5z'/%3E%3C/svg%3E");
+            background-color: rgba(255, 255, 255, 0.15);
+            /* Neue SVG mit mehr "Padding" am Rand, damit nichts abschneidet */
+            -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
             -webkit-mask-size: contain;
             -webkit-mask-repeat: no-repeat;
             -webkit-mask-position: center;
-            mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M100 185.5c-4.4 0-8.8-1.7-12.1-5C35 128.6 15 109.8 15 78.5 15 48.4 38.4 25 68.5 25c16.9 0 32.5 8 41.5 21 9-13 24.6-21 41.5-21 30.1 0 53.5 23.4 53.5 53.5 0 31.3-20 50.1-72.9 102-3.3 3.3-7.7 5-12.1 5z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
             mask-size: contain;
             mask-repeat: no-repeat;
             mask-position: center;
@@ -87,24 +86,25 @@
 
         .heart-fluid {
             position: absolute;
-            width: 280px; 
-            height: 280px;
-            background: #fd4b44; /* Passt zum Jahrestag-Button */
+            width: 250px; 
+            height: 250px;
+            background: #fd4b44;
             left: 50%;
-            margin-left: -140px;
-            bottom: -310px; /* Startet weit unter dem Herzen */
-            border-radius: 40%; /* Erzeugt die Wellenform bei Rotation */
-            animation: fillFluid 2.5s cubic-bezier(0.4, 0.0, 0.2, 1) forwards, spinFluid 3s linear infinite;
+            margin-left: -125px;
+            top: 150px; /* Startet unsichtbar unter dem Herz */
+            border-radius: 40%; 
+            /* Fill-Animation dauert jetzt exakt 2 Sekunden */
+            animation: fillFluid 2s ease-in-out forwards, spinFluid 3s linear infinite;
         }
 
         @keyframes fillFluid {
-            0% { bottom: -310px; }
-            100% { bottom: -30px; } /* Füllt sich bis oben auf */
+            0% { top: 150px; }
+            100% { top: -60px; } /* Fährt nach oben, bis das Herz komplett rot ist */
         }
 
         @keyframes spinFluid {
             0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); } /* Erzeugt die "Wellen" */
+            100% { transform: rotate(360deg); }
         }
 
         /* Container für die einzelnen "Seiten" */
@@ -220,7 +220,6 @@
             z-index: 5;
         }
 
-        /* Pulse-Effekt statt Vibration */
         .pulse { animation: pulse 0.3s ease-out; }
         @keyframes pulse { 
             0% { transform: scale(1); } 
@@ -228,7 +227,6 @@
             100% { transform: scale(1); } 
         }
 
-        /* Regenbogen-Glow für die Main-Buttons */
         .btn-rainbow {
             position: relative;
             background: #007aff; 
@@ -253,7 +251,6 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Der Jahrestag-Farbverlauf */
         .btn-anniversary { 
             background: linear-gradient(135deg, #feb632 0%, #fd4b44 35%, #bf219d 70%, #7022e0 100%); 
         } 
@@ -297,9 +294,7 @@
             -webkit-backdrop-filter: blur(8px);
         }
 
-        .popup-overlay.visible {
-            opacity: 1;
-        }
+        .popup-overlay.visible { opacity: 1; }
 
         .popup-content {
             background: rgba(30, 30, 30, 0.85);
@@ -313,9 +308,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .popup-overlay.visible .popup-content {
-            transform: translateY(0) scale(1);
-        }
+        .popup-overlay.visible .popup-content { transform: translateY(0) scale(1); }
 
         .popup-content h2 {
             margin-top: 0;
@@ -412,17 +405,14 @@
         const bg = document.getElementById('bg-layer');
         bg.classList.add('bg-loaded');
         
-        // Nach exakt 2,5 Sekunden (wenn das Herz voll ist)
+        // Nach exakt 2 Sekunden (wenn das Herz voll ist)
         setTimeout(() => {
-            // Ladeanimation ausblenden
             const loader = document.getElementById('heart-loader');
             loader.classList.add('fade-out');
             
-            // Menü einblenden
             document.getElementById('view-menu').classList.remove('hidden');
             setTimeout(() => {
                 document.getElementById('view-menu').classList.add('visible');
-                // Das unsichtbare Lade-Herz komplett aus dem Weg räumen
                 setTimeout(() => loader.style.display = 'none', 500);
             }, 50);
 
@@ -431,10 +421,9 @@
                 showPopup();
             }, 2500); 
 
-        }, 2500);
+        }, 2000); // <-- Timing auf 2 Sekunden (2000ms) angepasst
     };
 
-    // Pop-Up anzeigen
     function showPopup() {
         const popup = document.getElementById('popup-modal');
         popup.classList.remove('hidden');
@@ -443,7 +432,6 @@
         }, 50);
     }
 
-    // Pop-Up schließen
     function closePopup() {
         const popup = document.getElementById('popup-modal');
         popup.classList.remove('visible');
@@ -452,13 +440,11 @@
         }, 500);
     }
 
-    // Optisches Feedback beim Tippen (Pulse-Effekt)
     function triggerPulse(btn) {
         btn.classList.add('pulse');
         setTimeout(() => btn.classList.remove('pulse'), 300);
     }
 
-    // Wechsel zwischen den Seiten
     function switchView(viewId) {
         document.querySelectorAll('.view').forEach(v => {
             v.classList.remove('visible');
@@ -482,7 +468,6 @@
         }
     }
 
-    // Bilder-Wechsel Logic
     function showRandom() {
         if (images.length === 0 || isAnimating) return;
 
@@ -515,7 +500,6 @@
         };
     }
 
-    // Herzchen-Regen
     function startHeartRain() {
         const heartIcons = ['❤️', '💖', '💝', '💕', '🌸'];
         
