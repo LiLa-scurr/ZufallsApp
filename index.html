@@ -17,6 +17,7 @@
             font-family: -apple-system, sans-serif;
             color: white;
             overflow: hidden;
+            perspective: 1000px; /* Ermöglicht krasse 3D-Effekte */
         }
 
         /* Container für die einzelnen "Seiten" */
@@ -32,6 +33,14 @@
             text-align: center;
         }
 
+        /* NEU: Hintergrundbild NUR für die Startseite (00.jpg) */
+        #view-menu {
+            /* Das linear-gradient legt einen leichten Dunkelschleier über dein Bild, damit man die Schrift perfekt lesen kann */
+            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('00.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+
         /* Versteckt die inaktiven Seiten */
         .hidden { 
             display: none !important; 
@@ -40,16 +49,17 @@
         h1 {
             font-size: 28px;
             margin-bottom: 30px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 0 3px 6px rgba(0,0,0,0.5);
         }
 
-        /* Das Bild-Styling */
+        /* Das Bild-Styling - optimiert gegen Abschneiden */
         img { 
             max-width: 90%; 
             max-height: 60vh; 
             border-radius: 12px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             object-fit: contain;
+            backface-visibility: hidden; /* Verhindert Flackern bei 3D-Drehungen */
         }
 
         /* Der Extra-Text Bereich */
@@ -61,9 +71,10 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.3);
             font-size: 18px;
             line-height: 1.5;
+            backdrop-filter: blur(10px);
         }
 
-        /* Button-Styling */
+        /* Allgemeines Button-Styling */
         button { 
             margin-top: 15px;
             padding: 16px 35px; 
@@ -81,28 +92,69 @@
         button:active { transform: scale(0.95); }
 
         /* Besondere Buttons */
-        .btn-secondary { background: #34c759; box-shadow: 0 4px 10px rgba(52,199,89,0.3); } /* Grün */
-        .btn-back { background: #545456; font-size: 14px; padding: 10px 20px; margin-top: 30px; } /* Grau */
+        .btn-secondary { background: #34c759; box-shadow: 0 4px 10px rgba(52,199,89,0.3); } 
+        .btn-back { background: #545456; font-size: 14px; padding: 10px 20px; margin-top: 30px; } 
+
+        /* DER GALAXY / GEMINI REGENBOGEN BUTTON */
+        .btn-rainbow {
+            position: relative;
+            background: #007aff; 
+            z-index: 1; 
+            margin-top: 25px;
+        }
+
+        .btn-rainbow::before {
+            content: '';
+            position: absolute;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            z-index: -1; 
+            border-radius: 34px; 
+            background: linear-gradient(90deg, #ff007f, #7f00ff, #007aff, #00ff7f, #fff000, #ff007f);
+            background-size: 400% 400%;
+            filter: blur(8px);
+            opacity: 0.85;
+            animation: rainbowMovement 5s linear infinite;
+        }
+
+        @keyframes rainbowMovement {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
 
         /* ==========================================
-           FANCY 2000er POWERPOINT TRANSITIONS (CSS)
+           NEU: KRASSE 2000er POWERPOINT ANIMATIONEN
            ========================================== */
         
-        /* 1. Verblassen (Fade) */
-        .pt-fade { animation: pptFade 0.6s ease-out; }
-        @keyframes pptFade { from { opacity: 0; } to { opacity: 1; } }
+        /* 1. Der Hyper-Wirbel (Extremes Drehen und Skalieren) */
+        .pt-wirbel { animation: pptWirbel 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes pptWirbel { 
+            from { transform: rotate(-720deg) scale(0); opacity: 0; } 
+            to { transform: rotate(0deg) scale(1); opacity: 1; } 
+        }
 
-        /* 2. Einfliegen von unten (Slide Up) */
-        .pt-slide { animation: pptSlide 0.5s cubic-bezier(0.1, 0.8, 0.3, 1); }
-        @keyframes pptSlide { from { transform: translateY(100vh); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* 2. Der 3D-Trommel-Flip (Bild klappt aus dem Raum nach vorne) */
+        .pt-flip { animation: pptFlip 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        @keyframes pptFlip { 
+            from { transform: rotateX(-90deg); opacity: 0; } 
+            to { transform: rotateX(0deg); opacity: 1; } 
+        }
 
-        /* 3. Reizoomen (Zoom In) */
-        .pt-zoom { animation: pptZoom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pptZoom { from { transform: scale(0.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        /* 3. Der Gummiband-Pop (Federt extrem ein und aus) */
+        .pt-bounce { animation: pptBounce 0.65s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        @keyframes pptBounce { 
+            0% { transform: scale(0.1); opacity: 0; } 
+            70% { transform: scale(1.08); } 
+            100% { transform: scale(1); opacity: 1; } 
+        }
 
-        /* 4. Der legendäre Wirbel (Spin & Zoom) */
-        .pt-wirbel { animation: pptWirbel 0.7s ease-out; }
-        @keyframes pptWirbel { from { transform: rotate(-360deg) scale(0.1); opacity: 0; } to { transform: rotate(0deg) scale(1); opacity: 1; } }
+        /* 4. Das Epic-Einfliegen (Kommt mit Neigung von links reingeschossen) */
+        .pt-epic-slide { animation: pptEpicSlide 0.55s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        @keyframes pptEpicSlide { 
+            from { transform: translateX(-100vw) rotate(-20deg) scale(0.5); opacity: 0; } 
+            to { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; } 
+        }
 
     </style>
 </head>
@@ -116,7 +168,7 @@
 
     <div id="view-gallery" class="view hidden">
         <img id="display" src="" alt="Zufallsbild">
-        <button onclick="showRandom()">Gute-Laune-Knopf</button>
+        <button onclick="showRandom()" class="btn-rainbow">Gute-Laune-Knopf</button>
         <button onclick="switchView('menu')" class="btn-back">⬅ Zurück zum Menü</button>
     </div>
 
@@ -130,7 +182,6 @@
     </div>
 
 <script>
-    // 1. Bilder-Liste befüllen (wie gewohnt)
     const images = [];
     for (let i = 1; i <= 51; i++) {
         if (i < 10) {
@@ -140,26 +191,21 @@
         }
     }
 
-    // Liste aller verfügbaren PowerPoint-Effekte
-    const transitions = ['pt-fade', 'pt-slide', 'pt-zoom', 'pt-wirbel'];
+    // Die neuen, krassen Animationen im JavaScript hinterlegen
+    const transitions = ['pt-wirbel', 'pt-flip', 'pt-bounce', 'pt-epic-slide'];
 
-    // 2. Funktion zum Wechseln der Menü-Seiten
     function switchView(viewId) {
-        // Zuerst alle Seiten verstecken
         document.getElementById('view-menu').classList.add('hidden');
         document.getElementById('view-gallery').classList.add('hidden');
         document.getElementById('view-text').classList.add('hidden');
 
-        // Nur die gewünschte Seite anzeigen
         document.getElementById('view-' + viewId).classList.remove('hidden');
 
-        // Wenn zur Galerie gewechselt wird, direkt ein erstes Bild laden
         if (viewId === 'gallery') {
             showRandom();
         }
     }
 
-    // 3. Funktion für den "Gute-Laune-Knopf" (mit zufälligem Effekt)
     function showRandom() {
         if (images.length === 0) return;
 
@@ -167,21 +213,17 @@
         const chosenImage = images[randomIndex];
         const imgElement = document.getElementById('display');
         
-        // Altes Bild kurz leeren, damit der Effekt sauber neu startet
-        imgElement.src = "";
-        
-        // Alle alten Animations-Klassen entfernen
+        // Verhindert das "Hacken": Wir nehmen die CSS-Klasse erst weg
         imgElement.className = "";
         
-        // Zufälligen PowerPoint-Effekt auswählen
         const randomEffect = transitions[Math.floor(Math.random() * transitions.length)];
         
-        // Trick: Einen winzigen Moment warten, bevor das neue Bild geladen wird.
-        // Das zwingt das iPhone, die Animation jedes Mal komplett neu abzufeuern.
+        // Wir warten 30 Millisekunden (wichtig für iOS Safari!), damit das alte Bild 
+        // komplett ausgeblendet ist, bevor der neue krasse Effekt abfeuert.
         setTimeout(() => {
             imgElement.src = chosenImage;
             imgElement.classList.add(randomEffect);
-        }, 10);
+        }, 30);
     }
 </script>
 </body>
