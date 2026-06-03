@@ -17,28 +17,24 @@
             font-family: -apple-system, sans-serif;
             color: white;
             overflow: hidden;
-            perspective: 1000px; 
+            perspective: 2000px; /* Erhöht für extremes 3D-Feeling */
         }
 
-        /* NEU: Die eigene Hintergrund-Ebene für 00.jpg */
+        /* Hintergrund-Ebene für 00.jpg */
         .bg-layer {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('00.jpg');
             background-size: cover;
             background-position: center;
-            z-index: -2; /* Ganz nach hinten */
-            transition: filter 0.6s ease, transform 0.6s ease; /* Schöner, geschmeidiger Übergang */
+            z-index: -2; 
+            transition: filter 0.6s ease, transform 0.6s ease; 
             transform: scale(1);
         }
 
-        /* Klasse für den Weichzeichner (wird per JS aktiviert) */
         .bg-blurred {
             filter: blur(15px);
-            transform: scale(1.08); /* Verhindert weiße Ränder beim Bluren */
+            transform: scale(1.08); 
         }
 
         /* Container für die einzelnen "Seiten" */
@@ -54,12 +50,9 @@
             text-align: center;
         }
 
-        /* Versteckt die inaktiven Seiten */
-        .hidden { 
-            display: none !important; 
-        }
+        .hidden { display: none !important; }
 
-        /* Der neue mehrzeilige Titel */
+        /* Der neue mehrzeilige Titel für Lotti */
         h1 {
             font-size: 28px;
             line-height: 1.4;
@@ -68,19 +61,116 @@
             font-weight: 800;
         }
 
-        /* Das Bild-Styling */
-        img { 
-            max-width: 90%; 
-            max-height: 60vh; 
+        /* ==========================================
+           NEU: DER DUAL-IMAGE-CONTAINER (GALERIE)
+           ========================================== */
+        .gallery-wrapper {
+            position: relative;
+            width: 90%;
+            height: 60vh;
+            perspective: 1500px; /* Basis für den 3D-Flip */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Beide Bilder liegen exakt übereinander */
+        .gallery-wrapper img { 
+            position: absolute;
+            max-width: 100%; 
+            max-height: 100%; 
             border-radius: 12px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             object-fit: contain;
             backface-visibility: hidden; 
+            -webkit-backface-visibility: hidden;
+            opacity: 0; /* Standardmäßig ist das neue Bild unsichtbar */
+            transform: translate3d(0,0,0);
         }
 
-        /* Der Extra-Text Bereich */
+        /* Das stehende "alte" Bild ist voll sichtbar */
+        .gallery-wrapper img#img-old {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        /* Das "neue" Bild wartet eine Ebene darüber auf seinen Einsatz */
+        .gallery-wrapper img#img-new {
+            z-index: 3;
+        }
+
+        /* ==========================================
+           DIE NEUEN, NAHTLOSEN TRANSITIONS
+           ========================================== */
+        
+        /* EFFEKT 1: WEGSCHUBSEN (Push-Interaktion) */
+        .gallery-wrapper.mode-push #img-old {
+            animation: pushOld 0.6s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+        }
+        .gallery-wrapper.mode-push #img-new {
+            animation: pushNew 0.6s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+        }
+        @keyframes pushOld {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(-140%); opacity: 0; }
+        }
+        @keyframes pushNew {
+            from { transform: translateX(140%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* EFFEKT 2: 3D-MÜNZWURF (Flip von alt zu neu) */
+        .gallery-wrapper.mode-flip #img-old {
+            animation: flipOld 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .gallery-wrapper.mode-flip #img-new {
+            animation: flipNew 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes flipOld {
+            from { transform: rotateY(0deg); opacity: 1; }
+            to { transform: rotateY(-180deg); opacity: 0; }
+        }
+        @keyframes flipNew {
+            from { transform: rotateY(180deg); opacity: 0; }
+            to { transform: rotateY(0deg); opacity: 1; }
+        }
+
+        /* EFFEKT 3: VON OBEN REINKRACHEN (Drop & Squash) */
+        .gallery-wrapper.mode-drop #img-old {
+            animation: dropOld 0.55s ease-in forwards;
+        }
+        .gallery-wrapper.mode-drop #img-new {
+            animation: dropNew 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
+        }
+        @keyframes dropOld {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(0.8); opacity: 0; }
+        }
+        @keyframes dropNew {
+            from { transform: translateY(-120vh) scale(0.7); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        /* EFFEKT 4: HYPER-ZOOM-SWAP */
+        .gallery-wrapper.mode-zoom #img-old {
+            animation: zoomOld 0.6s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+        .gallery-wrapper.mode-zoom #img-new {
+            animation: zoomNew 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+        }
+        @keyframes zoomOld {
+            from { transform: scale(1) rotate(0deg); opacity: 1; }
+            to { transform: scale(0) rotate(45deg); opacity: 0; }
+        }
+        @keyframes zoomNew {
+            from { transform: scale(1.8) rotate(-45deg); opacity: 0; }
+            to { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+
+        /* Text-Box Bereich */
         .text-box {
-            background: rgba(0, 0, 0, 0.4); /* Etwas dunkler für bessere Lesbarkeit auf dem Hintergrund */
+            background: rgba(0, 0, 0, 0.5); 
             padding: 25px;
             border-radius: 16px;
             max-width: 85%;
@@ -91,7 +181,7 @@
             -webkit-backdrop-filter: blur(10px);
         }
 
-        /* Allgemeines Button-Styling */
+        /* Buttons & Gemini Glow-Effekt */
         button { 
             margin-top: 15px;
             padding: 16px 35px; 
@@ -111,7 +201,6 @@
         .btn-secondary { background: #34c759; box-shadow: 0 4px 10px rgba(52,199,89,0.3); } 
         .btn-back { background: #545456; font-size: 14px; padding: 10px 20px; margin-top: 30px; } 
 
-        /* DER GALAXY / GEMINI REGENBOGEN BUTTON */
         .btn-rainbow {
             position: relative;
             background: #007aff; 
@@ -135,4 +224,107 @@
         @keyframes rainbowMovement {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
-            1
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bg-layer" class="bg-layer"></div>
+
+    <div id="view-menu" class="view">
+        <h1>
+            ✨✨✨<br>
+            Lustige Lichtbilder<br>
+            für Lotti<br>
+            ✨✨✨
+        </h1>
+        <button onclick="switchView('gallery')">Zu den Bildern</button>
+        <button onclick="switchView('text')" class="btn-secondary">Extra-Text lesen</button>
+    </div>
+
+    <div id="view-gallery" class="view hidden">
+        <div id="gallery-wrapper" class="gallery-wrapper">
+            <img id="img-old" src="" alt="">
+            <img id="img-new" src="" alt="">
+        </div>
+        
+        <button onclick="showRandom()" class="btn-rainbow">Gute-Laune-Knopf</button>
+        <button onclick="switchView('menu')" class="btn-back">⬅ Zurück zum Menü</button>
+    </div>
+
+    <div id="view-text" class="view hidden">
+        <h1>💡 Ein kleiner Gedanke</h1>
+        <div class="text-box">
+            <p>Hier ist dein ganz persönlicher Extra-Text! ☀️</p>
+            <p>Egal wie stressig der Tag gerade ist: Atme einmal tief durch, lass die Schultern locker und schenk dir selbst ein Lächeln. Du machst das großartig und bist genau richtig, so wie du bist!</p>
+        </div>
+        <button onclick="switchView('menu')" class="btn-back">⬅ Zurück zum Menü</button>
+    </div>
+
+<script>
+    const images = [];
+    for (let i = 1; i <= 51; i++) {
+        if (i < 10) {
+            images.push('0' + i + '.jpg'); 
+        } else {
+            images.push(i + '.jpg');  
+        }
+    }
+
+    // Die neuen nahtlosen Dual-Image Effekte
+    const transitions = ['mode-push', 'mode-flip', 'mode-drop', 'mode-zoom'];
+    let isAnimating = false;
+
+    function switchView(viewId) {
+        document.getElementById('view-menu').classList.add('hidden');
+        document.getElementById('view-gallery').classList.add('hidden');
+        document.getElementById('view-text').classList.add('hidden');
+
+        document.getElementById('view-' + viewId).classList.remove('hidden');
+
+        const bg = document.getElementById('bg-layer');
+        if (viewId === 'menu') {
+            bg.classList.remove('bg-blurred');
+        } else {
+            bg.classList.add('bg-blurred');
+        }
+
+        if (viewId === 'gallery') {
+            showRandom();
+        }
+    }
+
+    function showRandom() {
+        // Verhindert, dass man den Knopf während einer laufenden Animation spammen kann
+        if (images.length === 0 || isAnimating) return;
+
+        const randomIndex = Math.floor(Math.random() * images.length);
+        const chosenImage = images[randomIndex];
+        
+        const imgOld = document.getElementById('img-old');
+        const imgNew = document.getElementById('img-new');
+        const wrapper = document.getElementById('gallery-wrapper');
+
+        // 1. Wir laden das neue Bild unsichtbar im Hintergrund auf das "img-new" Element
+        imgNew.src = chosenImage;
+
+        // 2. ERST WENN DAS BILD GELADEN IST (onload), starten wir die Animation!
+        imgNew.onload = function() {
+            isAnimating = true;
+            
+            // Zufälligen Effekt auswählen
+            const randomEffect = transitions[Math.floor(Math.random() * transitions.length)];
+            wrapper.classList.add(randomEffect);
+
+            // 3. Nach Ablauf der Animation (700ms) synchronisieren wir beide Elemente geräuschlos
+            setTimeout(() => {
+                imgOld.src = chosenImage; // Das alte Element übernimmt das Bild im Stillstand
+                wrapper.className = "gallery-wrapper"; // Animationsklassen zurücksetzen
+                isAnimating = false;
+            }, 700);
+        };
+    }
+</script>
+</body>
+</html>
