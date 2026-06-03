@@ -390,64 +390,61 @@
     };
 
     let currentAudio = null;
+    let imageQueue = []; // Hier speichern wir die gemischte Reihenfolge
+    let isAnimating = false;
 
-    const images = [];
+    // Erstelle das Array der Bilder
+    const allImages = [];
     for (let i = 1; i <= 51; i++) {
-        if (i < 10) {
-            images.push('0' + i + '.jpg'); 
-        } else {
-            images.push(i + '.jpg');  
+        allImages.push((i < 10 ? '0' + i : i) + '.jpg');
+    }
+
+    // Funktion zum Mischen des Arrays (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex != 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
         }
+        return array;
+    }
+
+    // Funktion um die Queue zu füllen/resetten
+    function resetQueue() {
+        imageQueue = shuffleArray([...allImages]);
     }
 
     const transitions = ['mode-push', 'mode-flip', 'mode-drop', 'mode-zoom'];
-    let isAnimating = false;
-    let lastShownImage = ""; 
 
-    // Start-Animation beim Laden der Seite
+    // Start-Animation beim Laden
     window.onload = () => {
+        resetQueue(); // Initiales Mischen
         const bg = document.getElementById('bg-layer');
         bg.classList.add('bg-loaded');
         
-        // Phase 1: Nach exakt 2 Sekunden ist das Herz voll und fadet aus
         setTimeout(() => {
             const loader = document.getElementById('heart-loader');
             loader.classList.add('fade-out');
-            
-            // Phase 2: Eine kleine Pause (800ms), in der nur der Hintergrund zu sehen ist
             setTimeout(() => {
-                loader.style.display = 'none'; // Herz aus dem Weg räumen
-
-                // Menü wird sanft eingeblendet
+                loader.style.display = 'none';
                 document.getElementById('view-menu').classList.remove('hidden');
-                setTimeout(() => {
-                    document.getElementById('view-menu').classList.add('visible');
-                }, 50);
-
-                // Phase 3: Pop-Up erscheint erst, wenn das Menü da ist (weitere 1,5s später)
-                setTimeout(() => {
-                    showPopup();
-                }, 1500); 
-
-            }, 800); // Dauer des Herz-Fadeouts (500ms) + 300ms Extra-Pause = 800ms
-
+                setTimeout(() => document.getElementById('view-menu').classList.add('visible'), 50);
+                setTimeout(() => showPopup(), 1500); 
+            }, 800);
         }, 2000); 
     };
 
     function showPopup() {
         const popup = document.getElementById('popup-modal');
         popup.classList.remove('hidden');
-        setTimeout(() => {
-            popup.classList.add('visible');
-        }, 50);
+        setTimeout(() => popup.classList.add('visible'), 50);
     }
 
     function closePopup() {
         const popup = document.getElementById('popup-modal');
         popup.classList.remove('visible');
-        setTimeout(() => {
-            popup.classList.add('hidden');
-        }, 500);
+        setTimeout(() => popup.classList.add('hidden'), 500);
     }
 
     function triggerPulse(btn) {
@@ -463,42 +460,32 @@
 
         const target = document.getElementById('view-' + viewId);
         target.classList.remove('hidden');
-        
         setTimeout(() => target.classList.add('visible'), 50);
 
         const bg = document.getElementById('bg-layer');
         if (viewId === 'menu') {
             bg.classList.remove('bg-blurred');
-            
-            // Audio stoppen, falls noch etwas spielt und wir zurück ins Menü gehen
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-            }
+            if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
         } else {
             bg.classList.add('bg-blurred');
         }
 
         if (viewId === 'gallery') {
-            showRandom();
+            showNext();
         }
     }
 
-    function showRandom() {
-        if (images.length === 0 || isAnimating) return;
+    function showNext() {
+        if (isAnimating) return;
 
-        let chosenImage;
+        // Wenn die Queue leer ist, neu mischen
+        if (imageQueue.length === 0) {
+            resetQueue();
+        }
         
-        do {
-            const randomIndex = Math.floor(Math.random() * images.length);
-            chosenImage = images[randomIndex];
-        } while (chosenImage === lastShownImage && images.length > 1);
+        const chosenImage = imageQueue.pop(); // Nimmt das nächste Bild aus der gemischten Liste
         
-        lastShownImage = chosenImage;
-        
-        // ==========================================
-        // AUDIO-LOGIK
-        // ==========================================
+        // Audio-Logik
         if (currentAudio) {
             currentAudio.pause();
             currentAudio.currentTime = 0;
@@ -507,7 +494,7 @@
 
         if (audioMap[chosenImage]) {
             currentAudio = new Audio(audioMap[chosenImage]);
-            currentAudio.play().catch(error => console.log("Ton konnte nicht abgespielt werden:", error));
+            currentAudio.play().catch(e => console.log("Audio Error:", e));
         }
         
         const imgOld = document.getElementById('img-old');
@@ -518,7 +505,6 @@
 
         imgNew.onload = function() {
             isAnimating = true;
-            
             const randomEffect = transitions[Math.floor(Math.random() * transitions.length)];
             wrapper.classList.add(randomEffect);
 
@@ -532,29 +518,18 @@
 
     function startHeartRain() {
         const heartIcons = ['❤️', '💖', '💝', '💕', '🌸'];
-        
         const rainInterval = setInterval(() => {
             const heart = document.createElement('div');
             heart.classList.add('heart-particle');
-            
             heart.innerText = heartIcons[Math.floor(Math.random() * heartIcons.length)];
             heart.style.left = Math.random() * 100 + 'vw';
             heart.style.fontSize = Math.floor(Math.random() * 8) + 12 + 'px';
-            
             const duration = Math.random() * 2 + 2.5;
             heart.style.animationDuration = duration + 's';
-            
             document.body.appendChild(heart);
-            
-            setTimeout(() => {
-                heart.remove();
-            }, duration * 1000);
-            
+            setTimeout(() => heart.remove(), duration * 1000);
         }, 100);
-
-        setTimeout(() => {
-            clearInterval(rainInterval);
-        }, 4000);
+        setTimeout(() => clearInterval(rainInterval), 4000);
     }
 </script>
 </body>
