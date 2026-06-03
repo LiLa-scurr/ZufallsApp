@@ -221,12 +221,84 @@
             90% { opacity: 0.85; }
             100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
         }
+
+        /* ==========================================
+           POP-UP MODAL (NEU)
+           ========================================== */
+        .popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .popup-overlay.visible {
+            opacity: 1;
+        }
+
+        .popup-content {
+            background: rgba(30, 30, 30, 0.85);
+            padding: 30px 25px;
+            border-radius: 20px;
+            max-width: 80%;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            transform: translateY(30px) scale(0.9);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .popup-overlay.visible .popup-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .popup-content h2 {
+            margin-top: 0;
+            font-size: 22px;
+            color: #feb632;
+            margin-bottom: 15px;
+        }
+
+        .popup-content p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            color: #eeeeee;
+        }
+
+        .popup-content button {
+            background: #ffffff;
+            color: #1e1e1e;
+            font-size: 16px;
+            padding: 12px 30px;
+            margin-top: 5px;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.2);
+        }
     </style>
 </head>
 <body>
 
+    <!-- Hintergrund -->
     <div id="bg-layer" class="bg-layer"></div>
 
+    <!-- Das neue Pop-Up Modal -->
+    <div id="popup-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <h2>Achtung Schabernack!</h2>
+            <p>Für lustige aufmunternde Bilder klicke auf den <b>"Zu den Lichtbildern"</b>-Knopf, für einen lieben Text auf den <b>"Für meine Mausi zum Jahrestag"</b>-Knopf.</p>
+            <p>Viel Vergnügen und immer schön frech bleiben. 😉</p>
+            <button onclick="triggerPulse(this); closePopup()">Verstanden!</button>
+        </div>
+    </div>
+
+    <!-- SEITE 1: DAS MENÜ -->
     <div id="view-menu" class="view">
         <h1>
             ✨✨✨<br>
@@ -241,6 +313,7 @@
         </button>
     </div>
 
+    <!-- SEITE 2: DIE GALERIE -->
     <div id="view-gallery" class="view hidden">
         <div id="gallery-wrapper" class="gallery-wrapper">
             <img id="img-old" src="" alt="">
@@ -251,6 +324,7 @@
         <button class="btn-back" onclick="switchView('menu')">⬅ Zurück zum Menü</button>
     </div>
 
+    <!-- SEITE 3: DER EXTRA-TEXT -->
     <div id="view-text" class="view hidden">
         <h1>Für meine liebste Lotti &lt;3</h1>
         <div class="text-box">
@@ -276,17 +350,42 @@
     // Start-Animation beim Laden der Seite
     window.onload = () => {
         const bg = document.getElementById('bg-layer');
-        // Lässt 00.jpg sanft erscheinen
         bg.classList.add('bg-loaded');
-        // Blendet das Menü nach 0.5s weich ein
+        
+        // Nach 2,5 Sekunden wird das Hauptmenü eingeblendet
         setTimeout(() => {
             document.getElementById('view-menu').classList.remove('hidden');
-            // Timeout für CSS Transition
             setTimeout(() => {
                 document.getElementById('view-menu').classList.add('visible');
             }, 50);
+
+            // NEU: Genau 3 Sekunden NACHDEM das Menü sichtbar wurde, kommt das Pop-Up
+            setTimeout(() => {
+                showPopup();
+            }, 3000); 
+
         }, 2500);
     };
+
+    // Pop-Up anzeigen
+    function showPopup() {
+        const popup = document.getElementById('popup-modal');
+        popup.classList.remove('hidden');
+        // Kurzer Delay, damit die CSS-Animation flüssig greift
+        setTimeout(() => {
+            popup.classList.add('visible');
+        }, 50);
+    }
+
+    // Pop-Up schließen
+    function closePopup() {
+        const popup = document.getElementById('popup-modal');
+        popup.classList.remove('visible');
+        // Warten bis die Fade-Out Animation fertig ist, dann ganz verstecken
+        setTimeout(() => {
+            popup.classList.add('hidden');
+        }, 500);
+    }
 
     // Optisches Feedback beim Tippen (Pulse-Effekt)
     function triggerPulse(btn) {
@@ -296,20 +395,16 @@
 
     // Wechsel zwischen den Seiten
     function switchView(viewId) {
-        // Erst alle Views unsichtbar machen
         document.querySelectorAll('.view').forEach(v => {
             v.classList.remove('visible');
             v.classList.add('hidden');
         });
 
-        // Ziel-View anzeigen
         const target = document.getElementById('view-' + viewId);
         target.classList.remove('hidden');
         
-        // Timeout für weichen Fade-in
         setTimeout(() => target.classList.add('visible'), 50);
 
-        // Hintergrund anpassen (Blur + Abdunkeln für Lesbarkeit auf Unterseiten)
         const bg = document.getElementById('bg-layer');
         if (viewId === 'menu') {
             bg.classList.remove('bg-blurred');
@@ -317,7 +412,6 @@
             bg.classList.add('bg-blurred');
         }
 
-        // Erstes Bild laden, falls Galerie geöffnet wird
         if (viewId === 'gallery') {
             showRandom();
         }
