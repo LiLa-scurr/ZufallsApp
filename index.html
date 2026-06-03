@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     
+    <!-- App-Icon für das iPhone (Homescreen) -->
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -90,14 +91,8 @@
             transform: translate3d(0,0,0);
         }
 
-        .gallery-wrapper img#img-old {
-            opacity: 1;
-            z-index: 2;
-        }
-
-        .gallery-wrapper img#img-new {
-            z-index: 3;
-        }
+        .gallery-wrapper img#img-old { opacity: 1; z-index: 2; }
+        .gallery-wrapper img#img-new { z-index: 3; }
 
         /* TRANSITIONS */
         .gallery-wrapper.mode-push #img-old { animation: pushOld 0.6s cubic-bezier(0.76, 0, 0.24, 1) forwards; }
@@ -131,9 +126,11 @@
             line-height: 1.5;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 5; /* Text bleibt vor den herabfallenden Herzen lesbar */
         }
 
-        /* Buttons & Gemini Glow-Effekt */
+        /* Buttons */
         button { 
             margin-top: 15px;
             padding: 16px 35px; 
@@ -145,12 +142,19 @@
             font-weight: bold;
             box-shadow: 0 4px 10px rgba(0,122,255,0.3);
             cursor: pointer;
+            line-height: 1.3; 
             -webkit-tap-highlight-color: transparent;
             transition: transform 0.1s;
+            position: relative;
+            z-index: 5;
         }
         button:active { transform: scale(0.95); }
 
-        .btn-secondary { background: #34c759; box-shadow: 0 4px 10px rgba(52,199,89,0.3); } 
+        .btn-anniversary { 
+            background: linear-gradient(135deg, #feb632 0%, #fd4b44 35%, #bf219d 70%, #7022e0 100%); 
+            box-shadow: 0 6px 15px rgba(253, 75, 68, 0.4); 
+        } 
+        
         .btn-back { background: #545456; font-size: 14px; padding: 10px 20px; margin-top: 30px; } 
 
         .btn-rainbow {
@@ -178,12 +182,44 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+
+        /* ==========================================
+           NEU: STYLING FÜR DEN HERZCHEN-REGEN
+           ========================================== */
+        .heart-particle {
+            position: fixed;
+            top: -20px;
+            font-size: 16px; /* Relativ klein, wie gewünscht */
+            user-select: none;
+            pointer-events: none;
+            z-index: 4;
+            animation: fallAndSway linear forwards;
+        }
+
+        @keyframes fallAndSway {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.85;
+            }
+            90% {
+                opacity: 0.85;
+            }
+            100% {
+                transform: translateY(105vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
 
+    <!-- Das feste Hintergrund-Element -->
     <div id="bg-layer" class="bg-layer"></div>
 
+    <!-- SEITE 1: DAS MENÜ -->
     <div id="view-menu" class="view">
         <h1>
             ✨✨✨<br>
@@ -192,9 +228,14 @@
             ✨✨✨
         </h1>
         <button onclick="switchView('gallery')">Zu den Lichtbildern</button>
-        <button onclick="switchView('text')" class="btn-secondary">Für meine Mausi zum Jahrestag</button>
+        
+        <!-- Triggert beim Klick den View-Wechsel UND den Herzchen-Regen -->
+        <button onclick="switchView('text'); startHeartRain();" class="btn-anniversary">
+            Für meine Mausi<br>zum Jahrestag
+        </button>
     </div>
 
+    <!-- SEITE 2: DIE GALERIE -->
     <div id="view-gallery" class="view hidden">
         <div id="gallery-wrapper" class="gallery-wrapper">
             <img id="img-old" src="" alt="">
@@ -205,6 +246,7 @@
         <button onclick="switchView('menu')" class="btn-back">⬅ Zurück zum Menü</button>
     </div>
 
+    <!-- SEITE 3: DER EXTRA-TEXT -->
     <div id="view-text" class="view hidden">
         <h1>Für meine liebste Lotti &lt;3</h1>
         <div class="text-box">
@@ -249,9 +291,6 @@
     function showRandom() {
         if (images.length === 0 || isAnimating) return;
 
-        // VIBRATION HIER EINBAUEN
-        // "navigator.vibrate" lässt das Handy vibrieren. 
-        // 50 steht für 50 Millisekunden (ein schöner, kurzer "App-Click" Impuls)
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
@@ -277,6 +316,45 @@
                 isAnimating = false;
             }, 700);
         };
+    }
+
+    // ==========================================
+    // NEU: JAVASCRIPT FÜR DEN HERZCHEN-REGEN
+    // ==========================================
+    function startHeartRain() {
+        const heartIcons = ['❤️', '💖', '💝', '💕', '🌸'];
+        
+        // Erzeugt alle 100 Millisekunden ein neues Herzchen
+        const rainInterval = setInterval(() => {
+            const heart = document.createElement('div');
+            heart.classList.add('heart-particle');
+            
+            // Zufälliges Herz/Symbol wählen
+            heart.innerText = heartIcons[Math.floor(Math.random() * heartIcons.length)];
+            
+            // Zufällige Position auf der horizontalen Achse (0% bis 100% der Bildschirmbreite)
+            heart.style.left = Math.random() * 100 + 'vw';
+            
+            // Zufällige Größe (zwischen 12px und 20px – schön dezent)
+            heart.style.fontSize = Math.floor(Math.random() * 8) + 12 + 'px';
+            
+            // Zufällige Fallgeschwindigkeit (zwischen 2.5 und 4.5 Sekunden für den Weg nach unten)
+            const duration = Math.random() * 2 + 2.5;
+            heart.style.animationDuration = duration + 's';
+            
+            document.body.appendChild(heart);
+            
+            // Löscht das einzelne Herz automatisch aus dem Speicher, sobald es unten angekommen ist
+            setTimeout(() => {
+                heart.remove();
+            }, duration * 1000);
+            
+        }, 100);
+
+        // Nach 4 Sekunden hört es auf, neue Herzen zu regnen, damit die Seite zur Ruhe kommt
+        setTimeout(() => {
+            clearInterval(rainInterval);
+        }, 4000);
     }
 </script>
 </body>
