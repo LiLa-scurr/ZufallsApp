@@ -327,6 +327,39 @@
             margin-top: 5px;
             box-shadow: 0 4px 15px rgba(255,255,255,0.2);
         }
+        /* ==========================================
+           SPEZIELLES STYLING FÜR DIE TEXT-SEITE
+           ========================================== */
+        #view-text {
+            justify-content: flex-start; /* Startet den Inhalt von oben */
+            padding-top: 35vh; /* Lässt das obere Drittel frei */
+            padding-bottom: 50px; /* Sorgt für genug Platz am Ende der Seite */
+            overflow-y: auto; /* Aktiviert das Scrollen */
+            -webkit-overflow-scrolling: touch; /* Macht das Scrollen auf iPhones flüssig */
+        }
+
+        #view-text h1 {
+            flex-shrink: 0; /* Verhindert, dass die Überschrift gestaucht wird */
+        }
+
+        #view-text .text-box {
+            margin-bottom: 30px; /* Schafft Abstand zwischen Liebesbrief und Button */
+            flex-shrink: 0; 
+        }
+
+        #view-text p {
+            margin-top: 0;
+            margin-bottom: 15px; /* Macht die Absätze angenehmer zu lesen */
+        }
+
+        #view-text p:last-child {
+            margin-bottom: 0; /* Kein extra Abstand nach dem letzten Absatz */
+        }
+        
+        #view-text .btn-back {
+            flex-shrink: 0; /* Hält den Button in seiner Form */
+            margin-top: 0; 
+        }
     </style>
 </head>
 <body>
