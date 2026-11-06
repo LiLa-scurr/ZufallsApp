@@ -680,18 +680,22 @@
 
     // SCHNEE-ANIMATION FÜR DEN ADVENTSKALENDER
     function startSnowRain() {
-        const snowIcons = ['❄️', '🌨️', '✨', '⚪', '❅', '❆'];
+        const snowIcons = ['❄️', '⚪', '❅', '❆'];
+        // Erzeuge alle 50 Millisekunden (vorher 150ms) Schneeflocken
         snowRainInterval = setInterval(() => {
-            const snow = document.createElement('div');
-            snow.classList.add('snow-particle');
-            snow.innerText = snowIcons[Math.floor(Math.random() * snowIcons.length)];
-            snow.style.left = Math.random() * 100 + 'vw';
-            snow.style.fontSize = Math.floor(Math.random() * 10) + 12 + 'px';
-            const duration = Math.random() * 3 + 3;
-            snow.style.animationDuration = duration + 's';
-            document.body.appendChild(snow);
-            setTimeout(() => snow.remove(), duration * 1000);
-        }, 150);
+            // Gleich 3 Flocken auf einmal pro Intervall für dichten Schneefall
+            for (let i = 0; i < 3; i++) {
+                const snow = document.createElement('div');
+                snow.classList.add('snow-particle');
+                snow.innerText = snowIcons[Math.floor(Math.random() * snowIcons.length)];
+                snow.style.left = Math.random() * 100 + 'vw';
+                snow.style.fontSize = Math.floor(Math.random() * 12) + 14 + 'px'; // Etwas größere Flocken
+                const duration = Math.random() * 2 + 2; // Schnellerer Fall (2 bis 4 Sekunden)
+                snow.style.animationDuration = duration + 's';
+                document.body.appendChild(snow);
+                setTimeout(() => snow.remove(), duration * 1000);
+            }
+        }, 50);
     }
 
     function stopSnowRain() {
