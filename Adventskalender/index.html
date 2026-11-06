@@ -420,7 +420,7 @@
     <audio id="advent-audio" src="advent-music.mp3" loop></audio>
 
     <!-- POPUP FÜR SCHABERNACK -->
-    <div id="popup-modal" class="popup-overlay hidden">
+    <!--<div id="popup-modal" class="popup-overlay hidden">
         <div class="popup-content">
             <h2>Achtung Schabernack!</h2>
             <p>Für lustige aufmunternde Bilder klicke auf den <b>"Zu den Lichtbildern"</b>-Knopf, für einen lieben Text auf den <b>"Für meine Mausi zum Jahrestag"</b>-Knopf.</p>
@@ -690,7 +690,7 @@
                 snow.innerText = snowIcons[Math.floor(Math.random() * snowIcons.length)];
                 snow.style.left = Math.random() * 100 + 'vw';
                 snow.style.fontSize = Math.floor(Math.random() * 12) + 14 + 'px'; // Etwas größere Flocken
-                const duration = Math.random() * 2 + 2; // Schnellerer Fall (2 bis 4 Sekunden)
+                const duration = Math.random() * 3 + 6; // Schnellerer Fall (2 bis 4 Sekunden)
                 snow.style.animationDuration = duration + 's';
                 document.body.appendChild(snow);
                 setTimeout(() => snow.remove(), duration * 1000);
