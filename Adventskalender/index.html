@@ -375,7 +375,7 @@
         #view-text p:last-child { margin-bottom: 0; }
         #view-text .btn-back { flex-shrink: 0; margin-top: 0; }
 
-        /* ADVENTSKALENDER STYLING MIT 2D CANVAS, WEISSEM RAND UND BLUR-EFFEKT */
+        /* ADVENTSKALENDER STYLING MIT 2D CANVAS UND WEISSEM BLUR-RAND */
         #view-advent {
             padding: 0;
             position: relative;
@@ -395,32 +395,44 @@
             width: 250vw; 
             height: 150vh;
             background-image: url('advent-bg.jpg');
-            background-size: 100% 100%;
+            background-size: cover; /* Verhindert Stauchung und behält Bildverhältnis bei */
             background-position: center;
-            background-repeat: no-repeat;
             position: relative;
             box-shadow: inset 0 0 80px 40px rgba(255, 255, 255, 0.8);
         }
 
-        /* GROSSE KRISTALLINE SCHNEEFLOCKEN-TÜRCHEN */
+        /* SCHNEEFLOCKEN-EMOJI TÜRNCHEN */
         .advent-door {
             position: absolute;
-            width: 75px;
-            height: 75px;
-            background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(179,229,252,0.85) 60%, rgba(79,195,247,0.75) 100%);
-            clip-path: polygon(50% 0%, 65% 28%, 100% 18%, 78% 45%, 98% 78%, 65% 70%, 50% 100%, 35% 70%, 2% 78%, 22% 45%, 0% 18%, 35% 28%);
+            width: 80px;
+            height: 80px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 22px;
-            font-weight: 900;
-            color: #013766;
-            text-shadow: 0 0 4px #ffffff, 0 1px 2px rgba(0,0,0,0.4);
-            filter: drop-shadow(0 0 10px rgba(135, 206, 250, 0.9));
             cursor: pointer;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             transition: transform 0.2s ease, filter 0.2s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+        }
+
+        .advent-door::before {
+            content: '❄️';
+            font-size: 78px;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+        }
+
+        .advent-door-number {
+            position: relative;
+            z-index: 2;
+            font-size: 22px;
+            font-weight: 900;
+            color: #0d47a1;
+            text-shadow: 0 0 6px #ffffff, 0 0 3px #ffffff, 0 1px 2px rgba(0,0,0,0.8);
         }
 
         .advent-door:active {
@@ -686,7 +698,11 @@
 
             const door = document.createElement('div');
             door.className = 'advent-door';
-            door.innerText = num;
+            
+            const numSpan = document.createElement('span');
+            numSpan.className = 'advent-door-number';
+            numSpan.innerText = num;
+            door.appendChild(numSpan);
 
             door.style.left = x + 'px';
             door.style.top = y + 'px';
@@ -715,13 +731,14 @@
         alert(`Hier öffnet sich dann Türchen ${selectedDoorNumber} mit Inhalt: ${type.toUpperCase()}`);
     }
 
+    /* ERHÖHTE ANZAHL UND SCHNELLERE 3D SCHNEEFLOCKEN */
     function initSnow3D() {
         const container = document.getElementById('snow-container');
         container.innerHTML = '';
         snowParticles = [];
 
-        const snowIcons = ['❄️', '⚪', '❅', '❆'];
-        const count = 45;
+        const snowIcons = ['❄️', '⚪', '❅', '❆', '✨'];
+        const count = 110; // Mehr Schneeflocken
 
         for (let i = 0; i < count; i++) {
             const el = document.createElement('div');
@@ -736,9 +753,9 @@
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight,
                 z: z,
-                speed: (Math.random() * 1.5 + 0.8) * scale,
-                size: Math.floor(Math.random() * 10 + 14) * scale,
-                opacity: Math.random() * 0.7 + 0.3
+                speed: (Math.random() * 3.0 + 2.0) * scale, // Schnellere Fallgeschwindigkeit
+                size: Math.floor(Math.random() * 12 + 14) * scale,
+                opacity: Math.random() * 0.75 + 0.25
             };
 
             el.style.fontSize = p.size + 'px';
@@ -750,7 +767,7 @@
 
     function updateSnow3D() {
         snowParticles.forEach(p => {
-            const effectiveSpeed = p.speed - (scrollVelocityY * 0.15);
+            const effectiveSpeed = p.speed - (scrollVelocityY * 0.2);
             p.y += effectiveSpeed;
 
             if (p.y > window.innerHeight + 20) {
