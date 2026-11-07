@@ -395,8 +395,8 @@
             width: 250vw; 
             height: 150vh;
             background-image: url('advent-bg.jpg');
-            background-size: 100% 100%; /* Füllt den 2D-Bereich exakt aus, ohne Wiederholung */
-            background-repeat: no-repeat; /* Verhindert das Kachelmuster absolut */
+            background-size: 100% 100%; /* Verhindert Kachelmuster, füllt den Bereich aus */
+            background-repeat: no-repeat;
             background-position: center;
             position: relative;
             box-shadow: inset 0 0 80px 40px rgba(255, 255, 255, 0.8);
@@ -530,7 +530,7 @@
             <p>Wir wollten beide etwas festes und jetzt sind wir hier ein Jahr später wieder zusammen bei mir. Nach einem Jahr voller schöner Momente mit dir, vergossenen Tränen, gegessenen Nüdelchen & unierten Unis. Ein Jahr mit dir, an das ich gerne noch viele weitere Jahre mit dir anschließen möchte.</p>
             <p>Mit dir kann ich zusammen lachen, weinen, unieren, schwimmen, feiern, kuscheln, kochen & alles andere. Du bist mein Sonnenschein zu jeder Stunde. Lotti du, bist mein 6er im Lotto.</p>
             <p>Mit dir kann ich Gegenden neu entdecken, Tulpen flücken gehen & schöne Spiegelselfies machen. Wir können im Bett rumschlunzen, genüßlich Kaffee und Kuchen im Café verzehren oder im Urlaub richtig schlemmen.</p>
-            <p>Ich find dich echt ganz knorke Mausi.</p>
+            <p>I find dich echt ganz knorke Mausi.</p>
             <p>Meine Liebste Maus, ich liebe dich!</p>
             <p>Und ich bin immer da für dich! &lt;3</p>
             <p>Dein Linus</p>
@@ -615,10 +615,12 @@
     let isAnimating = false;
     let selectedDoorNumber = null;
     
-    // 3D Schnee Variablen
+    // 3D Schnee Variablen mit Wisch- und Scroll-Erfassung
     let snowParticles = [];
     let snowAnimFrame = null;
+    let lastScrollX = 0;
     let lastScrollY = 0;
+    let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
     const allImages = [];
@@ -732,16 +734,7 @@
         alert(`Hier öffnet sich dann Türchen ${selectedDoorNumber} mit Inhalt: ${type.toUpperCase()}`);
     }
 
-
-
     // 3D SCHNEE SYSTEM MIT SCROLL- UND WISCH-DYNAMIK
-    let snowParticles = [];
-    let snowAnimFrame = null;
-    let lastScrollX = 0;
-    let lastScrollY = 0;
-    let scrollVelocityX = 0;
-    let scrollVelocityY = 0;
-
     function initSnow3D() {
         const container = document.getElementById('snow-container');
         container.innerHTML = '';
@@ -763,7 +756,7 @@
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight,
                 z: z,
-                speedX: (Math.random() * 0.4 - 0.2), // Sanftes Eigen-Driften zur Seite
+                speedX: (Math.random() * 0.4 - 0.2), 
                 speedY: (Math.random() * 3.0 + 2.0) * scale,
                 size: Math.floor(Math.random() * 12 + 14) * scale,
                 opacity: Math.random() * 0.75 + 0.25
@@ -778,14 +771,12 @@
 
     function updateSnow3D() {
         snowParticles.forEach(p => {
-            // Schneeflocken reagieren auf vertikales UND horizontales Wischen/Scrollen
             const effectiveSpeedY = p.speedY - (scrollVelocityY * 0.2);
             const effectiveSpeedX = p.speedX - (scrollVelocityX * 0.25);
             
             p.y += effectiveSpeedY;
             p.x += effectiveSpeedX;
 
-            // Loop an den Bildschirmrändern
             if (p.y > window.innerHeight + 20) {
                 p.y = -20;
                 p.x = Math.random() * window.innerWidth;
@@ -803,7 +794,6 @@
             p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, ${p.z}px)`;
         });
 
-        // Dämpfung der Geschwindigkeiten
         scrollVelocityY *= 0.85;
         scrollVelocityX *= 0.85;
         snowAnimFrame = requestAnimationFrame(updateSnow3D);
