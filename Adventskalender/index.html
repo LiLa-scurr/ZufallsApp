@@ -395,7 +395,8 @@
             width: 250vw; 
             height: 150vh;
             background-image: url('advent-bg.jpg');
-            background-size: 1376px 768px; /* Verhindert Stauchung und behält Bildverhältnis bei */
+            background-size: 100% 100%; /* Füllt den 2D-Bereich exakt aus, ohne Wiederholung */
+            background-repeat: no-repeat; /* Verhindert das Kachelmuster absolut */
             background-position: center;
             position: relative;
             box-shadow: inset 0 0 80px 40px rgba(255, 255, 255, 0.8);
@@ -731,14 +732,23 @@
         alert(`Hier öffnet sich dann Türchen ${selectedDoorNumber} mit Inhalt: ${type.toUpperCase()}`);
     }
 
-    /* ERHÖHTE ANZAHL UND SCHNELLERE 3D SCHNEEFLOCKEN */
+
+
+    // 3D SCHNEE SYSTEM MIT SCROLL- UND WISCH-DYNAMIK
+    let snowParticles = [];
+    let snowAnimFrame = null;
+    let lastScrollX = 0;
+    let lastScrollY = 0;
+    let scrollVelocityX = 0;
+    let scrollVelocityY = 0;
+
     function initSnow3D() {
         const container = document.getElementById('snow-container');
         container.innerHTML = '';
         snowParticles = [];
 
         const snowIcons = ['❄️', '⚪', '❅', '❆', '✨'];
-        const count = 110; // Mehr Schneeflocken
+        const count = 110;
 
         for (let i = 0; i < count; i++) {
             const el = document.createElement('div');
@@ -753,7 +763,8 @@
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight,
                 z: z,
-                speed: (Math.random() * 3.0 + 2.0) * scale, // Schnellere Fallgeschwindigkeit
+                speedX: (Math.random() * 0.4 - 0.2), // Sanftes Eigen-Driften zur Seite
+                speedY: (Math.random() * 3.0 + 2.0) * scale,
                 size: Math.floor(Math.random() * 12 + 14) * scale,
                 opacity: Math.random() * 0.75 + 0.25
             };
@@ -767,9 +778,14 @@
 
     function updateSnow3D() {
         snowParticles.forEach(p => {
-            const effectiveSpeed = p.speed - (scrollVelocityY * 0.2);
-            p.y += effectiveSpeed;
+            // Schneeflocken reagieren auf vertikales UND horizontales Wischen/Scrollen
+            const effectiveSpeedY = p.speedY - (scrollVelocityY * 0.2);
+            const effectiveSpeedX = p.speedX - (scrollVelocityX * 0.25);
+            
+            p.y += effectiveSpeedY;
+            p.x += effectiveSpeedX;
 
+            // Loop an den Bildschirmrändern
             if (p.y > window.innerHeight + 20) {
                 p.y = -20;
                 p.x = Math.random() * window.innerWidth;
@@ -778,10 +794,18 @@
                 p.x = Math.random() * window.innerWidth;
             }
 
+            if (p.x > window.innerWidth + 20) {
+                p.x = -20;
+            } else if (p.x < -20) {
+                p.x = window.innerWidth + 20;
+            }
+
             p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, ${p.z}px)`;
         });
 
-        scrollVelocityY *= 0.9;
+        // Dämpfung der Geschwindigkeiten
+        scrollVelocityY *= 0.85;
+        scrollVelocityX *= 0.85;
         snowAnimFrame = requestAnimationFrame(updateSnow3D);
     }
 
@@ -800,14 +824,19 @@
         document.getElementById('snow-container').innerHTML = '';
     }
 
+    // Scroll- und Wisch-Erfassung für den Container
     const scrollContainer = document.getElementById('advent-scroll-container');
     if (scrollContainer) {
         scrollContainer.addEventListener('scroll', () => {
             const currentY = scrollContainer.scrollTop;
+            const currentX = scrollContainer.scrollLeft;
+            
             scrollVelocityY = currentY - lastScrollY;
+            scrollVelocityX = currentX - lastScrollX;
+            
             lastScrollY = currentY;
+            lastScrollX = currentX;
         });
-    }
 
     resetQueue();
     checkAdventCalendarAvailability();
