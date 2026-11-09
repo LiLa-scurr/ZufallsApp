@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="mobile-web-app-capable" content="yes">
@@ -10,17 +10,13 @@
 
     <title>Adventskalender für Lotti</title>
     <style>
-        /* Basis-Styling */
+        /* Basis-Styling - Füllt den Bildschirm voll aus ohne weiße Ränder */
         body { 
             margin: 0; 
-            display: flex; 
-            flex-direction: column;
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            background: #ffffff; 
+            width: 100vw;
+            height: 100vh;
+            background: #111; /* Dunkler Hintergrund, falls ein Rand zu sehen ist */
             font-family: -apple-system, sans-serif;
-            color: #1e1e1e;
             overflow: hidden;
             perspective: 2000px; 
         }
@@ -114,16 +110,7 @@
             border: 1px solid #34495e !important;
         }
 
-        /* ADVENTSKALENDER KANVAS & SCROLLBEREICH */
-        .view-advent {
-            width: 100vw;
-            height: 100vh;
-            padding: 0;
-            position: relative;
-            overflow: hidden;
-            background: #ffffff; 
-        }
-
+        /* SCROLLBEREICH FÜR DAS GROSSE BILD */
         .advent-scroll-container {
             width: 100vw;
             height: 100vh;
@@ -132,15 +119,14 @@
             position: relative;
         }
 
+        /* DAS GROSSE KANVAS BILD (HIER WIRD ES GROSS GEMACHT) */
         .advent-canvas {
-            width: 300vw; /* Mehr Breite zum Scrollen */
-            height: 250vh; /* Genug Höhe, damit oben und unten nichts abgeschnitten wird */
+            width: 350vw;  /* Riesige Breite zum Erkunden */
+            height: 350vh; /* Riesige Höhe zum Erkunden */
             background-image: url('advent-bg.jpg');
-            background-size: 100vw auto; /* Passt das Bild an die Bildschirmbreite an und behält das echte Format bei */
+            background-size: 100% 100%; /* Füllt die gesamte große Canvas-Fläche exakt aus */
             background-repeat: no-repeat;
-            background-position: top center;
             position: relative;
-            box-shadow: inset 0 0 80px 40px rgba(255, 255, 255, 0.8);
         }
 
         /* SCHNEEFLOCKEN-EMOJI TÜRNCHEN */
@@ -155,7 +141,7 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             transition: transform 0.2s ease, filter 0.2s ease;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
         }
 
         .advent-door::before {
@@ -222,15 +208,13 @@
         </div>
     </div>
 
-    <!-- ADVENTSKALENDER SEITE -->
-    <div class="view-advent">
-        <div id="advent-scroll-container" class="advent-scroll-container">
-            <div id="advent-canvas" class="advent-canvas">
-                <!-- Türchen werden via JavaScript platziert -->
-            </div>
+    <!-- ADVENTSKALENDER SEITE MIT SCHNELLEN SKALIERBAREM KANVAS -->
+    <div id="advent-scroll-container" class="advent-scroll-container">
+        <div id="advent-canvas" class="advent-canvas">
+            <!-- Türchen werden via JavaScript platziert -->
         </div>
-        <button class="btn-back" onclick="window.location.href='menu.html'">⬅ Zurück zum Menü</button>
     </div>
+    <button class="btn-back" onclick="window.location.href='menu.html'">⬅ Zurück zum Menü</button>
 
 <script>
     let selectedDoorNumber = null;
@@ -264,9 +248,9 @@
         const doorRadius = 45;
         const minDistance = doorRadius * 2 + 50;
 
-        // Wir verteilen die Türchen jetzt im gesamten vergrößerten Canvas-Bereich (wobei Rand gelassen wird)
-        const canvasWidth = window.innerWidth * 3.0;
-        const canvasHeight = window.innerHeight * 2.3;
+        // Maße des großen Canvas
+        const canvasWidth = window.innerWidth * 3.5;
+        const canvasHeight = window.innerHeight * 3.5;
 
         doorNumbers.forEach((num) => {
             let x, y, collision;
@@ -274,9 +258,8 @@
 
             do {
                 collision = false;
-                // Verteilung über die gesamte Bildfläche mit etwas Puffer zu den Rändern
-                x = Math.random() * (canvasWidth - 200) + 100;
-                y = Math.random() * (canvasHeight - 200) + 100;
+                x = Math.random() * (canvasWidth - 300) + 150;
+                y = Math.random() * (canvasHeight - 300) + 150;
 
                 for (let pos of placedDoors) {
                     const dx = x - pos.x;
@@ -406,11 +389,19 @@
         });
     }
 
-    // Initialisierung beim Laden
+    // Initialisierung beim Laden (Start in der Mitte des großen Bildes)
     window.onload = () => {
         generateAdventDoors();
         initSnow3D();
         updateSnow3D();
+
+        // Automatisch direkt in die Mitte des Bildes scrollen (Reingezoomt starten)
+        if (scrollContainer) {
+            scrollContainer.scrollLeft = (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2;
+            scrollContainer.scrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) / 2;
+            lastScrollX = scrollContainer.scrollLeft;
+            lastScrollY = scrollContainer.scrollTop;
+        }
 
         const adventAudio = document.getElementById('advent-audio');
         if (adventAudio) {
