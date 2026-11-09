@@ -10,18 +10,18 @@
 
     <title>Adventskalender für Lotti</title>
     <style>
-        /* Basis-Styling - Füllt den Bildschirm voll aus ohne weiße Ränder */
+        /* Basis-Styling */
         body { 
             margin: 0; 
             width: 100vw;
             height: 100vh;
-            background: #111; /* Dunkler Hintergrund, falls ein Rand zu sehen ist */
+            background: #111; 
             font-family: -apple-system, sans-serif;
             overflow: hidden;
             perspective: 2000px; 
         }
 
-        /* SCHNEE-REGEN & 3D PARALLAX FLOCKEN */
+        /* REIN WEISSER SCHNEE (Keine dunklen Symbole mehr) */
         .snow-container {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -36,6 +36,8 @@
             pointer-events: none;
             will-change: transform;
             transition: transform 0.1s linear;
+            color: #ffffff !important;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
         }
 
         /* POP-UP MODAL FÜR TÜRCHEN */
@@ -110,7 +112,7 @@
             border: 1px solid #34495e !important;
         }
 
-        /* SCROLLBEREICH FÜR DAS GROSSE BILD */
+        /* SCROLLBEREICH */
         .advent-scroll-container {
             width: 100vw;
             height: 100vh;
@@ -119,14 +121,24 @@
             position: relative;
         }
 
-        /* DAS GROSSE KANVAS BILD (HIER WIRD ES GROSS GEMACHT) */
+        /* KANVAS FÜR LAPTOP & GROSSE BILDSCHIRME */
         .advent-canvas {
-            width: 350vw;  /* Riesige Breite zum Erkunden */
-            height: 350vh; /* Riesige Höhe zum Erkunden */
+            width: 350vw;  
+            height: 350vh; 
             background-image: url('advent-bg.jpg');
-            background-size: 100% 100%; /* Füllt die gesamte große Canvas-Fläche exakt aus */
+            background-size: 100% 100%; 
             background-repeat: no-repeat;
             position: relative;
+        }
+
+        /* SPEZIELL FÜR HANDYS / SCHMALE BILDSCHIRME (Verhindert jegliches Stauchen) */
+        @media screen and (max-width: 768px) {
+            .advent-canvas {
+                width: 250vw;
+                height: 250vh;
+                background-size: cover; /* Perfekt eingepasst fürs Smartphone ohne Quetschung */
+                background-position: center;
+            }
         }
 
         /* SCHNEEFLOCKEN-EMOJI TÜRNCHEN */
@@ -189,13 +201,13 @@
 </head>
 <body>
 
-    <!-- SCHNEE CONTAINER FÜR 3D PARALLAX FLOCKEN -->
+    <!-- SCHNEE CONTAINER -->
     <div id="snow-container" class="snow-container"></div>
 
-    <!-- AUDIO FÜR DEN ADVENTSKALENDER -->
+    <!-- AUDIO -->
     <audio id="advent-audio" src="advent-music.mp3" loop></audio>
 
-    <!-- POPUP FÜR DIE TÜRCHEN-AUSWAHL -->
+    <!-- POPUP -->
     <div id="door-options-modal" class="popup-overlay">
         <div class="popup-content">
             <h2 id="door-modal-title">Türchen</h2>
@@ -208,10 +220,10 @@
         </div>
     </div>
 
-    <!-- ADVENTSKALENDER SEITE MIT SCHNELLEN SKALIERBAREM KANVAS -->
+    <!-- KANVAS CONTAINER -->
     <div id="advent-scroll-container" class="advent-scroll-container">
         <div id="advent-canvas" class="advent-canvas">
-            <!-- Türchen werden via JavaScript platziert -->
+            <!-- Türchen werden via JS platziert -->
         </div>
     </div>
     <button class="btn-back" onclick="window.location.href='menu.html'">⬅ Zurück zum Menü</button>
@@ -219,7 +231,6 @@
 <script>
     let selectedDoorNumber = null;
     
-    // 3D Schnee Variablen mit Wisch- und Scroll-Erfassung
     let snowParticles = [];
     let snowAnimFrame = null;
     let lastScrollX = 0;
@@ -248,9 +259,8 @@
         const doorRadius = 45;
         const minDistance = doorRadius * 2 + 50;
 
-        // Maße des großen Canvas
-        const canvasWidth = window.innerWidth * 3.5;
-        const canvasHeight = window.innerHeight * 3.5;
+        const canvasWidth = canvas.clientWidth || (window.innerWidth * 3.5);
+        const canvasHeight = canvas.clientHeight || (window.innerHeight * 3.5);
 
         doorNumbers.forEach((num) => {
             let x, y, collision;
@@ -309,13 +319,13 @@
         alert(`Hier öffnet sich dann Türchen ${selectedDoorNumber} mit Inhalt: ${type.toUpperCase()}`);
     }
 
-    // 3D SCHNEE SYSTEM MIT SCROLL- UND WISCH-DYNAMIK
+    /* NUR NOCH REIN WEISSE SCHNEEFLOCKEN & GLITZER */
     function initSnow3D() {
         const container = document.getElementById('snow-container');
         container.innerHTML = '';
         snowParticles = [];
 
-        const snowIcons = ['❄️', '⚪', '❅', '❆', '✨'];
+        const snowIcons = ['❄️', '❅', '❆', '✨', '⭐'];
         const count = 110;
 
         for (let i = 0; i < count; i++) {
@@ -334,7 +344,7 @@
                 speedX: (Math.random() * 0.4 - 0.2), 
                 speedY: (Math.random() * 3.0 + 2.0) * scale,
                 size: Math.floor(Math.random() * 12 + 14) * scale,
-                opacity: Math.random() * 0.75 + 0.25
+                opacity: Math.random() * 0.8 + 0.2
             };
 
             el.style.fontSize = p.size + 'px';
@@ -374,7 +384,6 @@
         snowAnimFrame = requestAnimationFrame(updateSnow3D);
     }
 
-    // Scroll- und Wisch-Erfassung für den Container
     const scrollContainer = document.getElementById('advent-scroll-container');
     if (scrollContainer) {
         scrollContainer.addEventListener('scroll', () => {
@@ -389,13 +398,11 @@
         });
     }
 
-    // Initialisierung beim Laden (Start in der Mitte des großen Bildes)
     window.onload = () => {
         generateAdventDoors();
         initSnow3D();
         updateSnow3D();
 
-        // Automatisch direkt in die Mitte des Bildes scrollen (Reingezoomt starten)
         if (scrollContainer) {
             scrollContainer.scrollLeft = (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2;
             scrollContainer.scrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) / 2;
