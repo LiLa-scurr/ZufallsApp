@@ -131,13 +131,14 @@
             position: relative;
         }
 
-        /* SPEZIELL FÜR HANDYS / SCHMALE BILDSCHIRME (Verhindert jegliches Stauchen) */
+        /* FÜR HANDYS: Exaktes Seitenverhältnis, damit absolut nichts abgeschnitten wird */
         @media screen and (max-width: 768px) {
             .advent-canvas {
-                width: 250vw;
-                height: 250vh;
-                background-size: cover; /* Perfekt eingepasst fürs Smartphone ohne Quetschung */
+                width: 300vw;
+                height: 300vw; /* Macht es quadratisch/proportional, damit das ganze Bild sichtbar ist */
+                background-size: contain; /* Zeigt das gesamte Bild ohne Beschneidung */
                 background-position: center;
+                background-color: #111; /* Dunkler Hintergrund an den Rändern statt weiß */
             }
         }
 
