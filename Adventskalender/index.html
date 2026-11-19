@@ -21,7 +21,7 @@
             perspective: 2000px; 
         }
 
-        /* REIN WEISSER SCHNEE (Keine dunklen Symbole mehr) */
+        /* REIN WEISSER SCHNEE */
         .snow-container {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -121,24 +121,22 @@
             position: relative;
         }
 
-        /* KANVAS FÜR LAPTOP & GROSSE BILDSCHIRME */
+        /* KANVAS MIT EXAKTEM BILD-SEITENVERHÄLTNIS (KEINE SCHWARZEN BALKEN, KEIN STAUCHEN) */
         .advent-canvas {
-            width: 1376vw;
-            height: 768vh; 
+            width: 240vw;
+            height: calc(240vw * 768 / 1376);
             background-image: url('advent-bg.jpg');
-            background-size: 100% 100%; 
+            background-size: 100% 100%;
             background-repeat: no-repeat;
+            background-position: center;
             position: relative;
         }
 
-        /* FÜR HANDYS: Exaktes Seitenverhältnis, damit absolut nichts abgeschnitten wird */
+        /* Auf dem Handy stärker herangezoomt starten und nur über das Bild scrollen */
         @media screen and (max-width: 768px) {
             .advent-canvas {
-                width: 300vw;
-                height: 300vw; /* Macht es quadratisch/proportional, damit das ganze Bild sichtbar ist */
-                background-size: contain; /* Zeigt das gesamte Bild ohne Beschneidung */
-                background-position: center;
-                background-color: #111; /* Dunkler Hintergrund an den Rändern statt weiß */
+                width: 340vw;
+                height: calc(340vw * 768 / 1376);
             }
         }
 
@@ -206,7 +204,7 @@
     <div id="snow-container" class="snow-container"></div>
 
     <!-- AUDIO -->
-    <audio id="advent-audio" src="advent-music.mp3" loop></audio>
+    <audio id="advent-audio" src="advent-music.mp3" loop autoplay playsinline></audio>
 
     <!-- POPUP -->
     <div id="door-options-modal" class="popup-overlay">
@@ -249,6 +247,30 @@
         return array;
     }
 
+    function syncCanvasAspectRatio() {
+        const canvas = document.getElementById('advent-canvas');
+        const img = new Image();
+        img.src = 'advent-bg.jpg';
+        img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+                const width = canvas.clientWidth;
+                canvas.style.height = (width * img.naturalHeight / img.naturalWidth) + 'px';
+                generateAdventDoors();
+                centerScrollView();
+            }
+        };
+    }
+
+    function centerScrollView() {
+        const container = document.getElementById('advent-scroll-container');
+        if (container) {
+            container.scrollLeft = Math.max(0, (container.scrollWidth - container.clientWidth) / 2);
+            container.scrollTop = Math.max(0, (container.scrollHeight - container.clientHeight) / 2);
+            lastScrollX = container.scrollLeft;
+            lastScrollY = container.scrollTop;
+        }
+    }
+
     function generateAdventDoors() {
         const canvas = document.getElementById('advent-canvas');
         canvas.innerHTML = ''; 
@@ -257,11 +279,12 @@
         shuffleArray(doorNumbers);
 
         const placedDoors = [];
-        const doorRadius = 45;
-        const minDistance = doorRadius * 2 + 50;
+        const doorSize = 80;
+        const minDistance = doorSize + 35;
 
-        const canvasWidth = canvas.clientWidth || (window.innerWidth * 3.5);
-        const canvasHeight = canvas.clientHeight || (window.innerHeight * 3.5);
+        const canvasWidth = canvas.clientWidth;
+        const canvasHeight = canvas.clientHeight;
+        const padding = 20;
 
         doorNumbers.forEach((num) => {
             let x, y, collision;
@@ -269,8 +292,8 @@
 
             do {
                 collision = false;
-                x = Math.random() * (canvasWidth - 300) + 150;
-                y = Math.random() * (canvasHeight - 300) + 150;
+                x = Math.random() * Math.max(20, canvasWidth - doorSize - padding * 2) + padding;
+                y = Math.random() * Math.max(20, canvasHeight - doorSize - padding * 2) + padding;
 
                 for (let pos of placedDoors) {
                     const dx = x - pos.x;
@@ -320,7 +343,7 @@
         alert(`Hier öffnet sich dann Türchen ${selectedDoorNumber} mit Inhalt: ${type.toUpperCase()}`);
     }
 
-    /* NUR NOCH REIN WEISSE SCHNEEFLOCKEN & GLITZER */
+    /* REIN WEISSE SCHNEEFLOCKEN & GLITZER */
     function initSnow3D() {
         const container = document.getElementById('snow-container');
         container.innerHTML = '';
@@ -401,27 +424,26 @@
 
     window.onload = () => {
         generateAdventDoors();
+        syncCanvasAspectRatio();
         initSnow3D();
         updateSnow3D();
-
-        if (scrollContainer) {
-            scrollContainer.scrollLeft = (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2;
-            scrollContainer.scrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) / 2;
-            lastScrollX = scrollContainer.scrollLeft;
-            lastScrollY = scrollContainer.scrollTop;
-        }
+        centerScrollView();
 
         const adventAudio = document.getElementById('advent-audio');
         if (adventAudio) {
             const tryPlayAudio = () => {
-                adventAudio.play().catch(e => console.log("Audio wartet auf Interaktion:", e));
+                if (!adventAudio.paused) return;
+                adventAudio.play().then(() => {
+                    document.removeEventListener('pointerdown', tryPlayAudio);
+                    document.removeEventListener('touchstart', tryPlayAudio);
+                    document.removeEventListener('scroll', tryPlayAudio, true);
+                }).catch(() => {});
             };
 
-            // Direkt versuchen zu starten
             tryPlayAudio();
-
-            // Falls der Browser Autoplay blockt, beim ersten Tippen/Klicken starten
-            document.addEventListener('pointerdown', tryPlayAudio, { once: true });
+            document.addEventListener('pointerdown', tryPlayAudio, { passive: true });
+            document.addEventListener('touchstart', tryPlayAudio, { passive: true });
+            document.addEventListener('scroll', tryPlayAudio, { passive: true, capture: true });
         }
     };
 </script>
