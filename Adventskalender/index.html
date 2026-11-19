@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    
+
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,14 +11,14 @@
     <title>Adventskalender für Lotti</title>
     <style>
         /* Basis-Styling */
-        body { 
-            margin: 0; 
+        body {
+            margin: 0;
             width: 100vw;
             height: 100vh;
-            background: #111; 
+            background: #111;
             font-family: -apple-system, sans-serif;
             overflow: hidden;
-            perspective: 2000px; 
+            perspective: 2000px;
         }
 
         /* REIN WEISSER SCHNEE */
@@ -56,8 +56,8 @@
             -webkit-backdrop-filter: blur(8px);
         }
 
-        .popup-overlay.visible { 
-            opacity: 1; 
+        .popup-overlay.visible {
+            opacity: 1;
             pointer-events: auto;
         }
 
@@ -179,7 +179,7 @@
         }
 
         /* ZURÜCK-BUTTON */
-        .btn-back { 
+        .btn-back {
             position: fixed;
             bottom: 20px;
             left: 50%;
@@ -238,7 +238,7 @@
 
 <script>
     let selectedDoorNumber = null;
-    
+
     let snowParticles = [];
     let snowAnimFrame = null;
     let lastScrollX = 0;
@@ -282,8 +282,8 @@
 
     function generateAdventDoors() {
         const canvas = document.getElementById('advent-canvas');
-        canvas.innerHTML = ''; 
-        
+        canvas.innerHTML = '';
+
         const doorNumbers = ['Test', 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
         shuffleArray(doorNumbers);
 
@@ -321,7 +321,7 @@
 
             const door = document.createElement('div');
             door.className = 'advent-door';
-            
+
             const numSpan = document.createElement('span');
             numSpan.className = 'advent-door-number';
             numSpan.innerText = num;
@@ -342,14 +342,12 @@
         const month = now.getMonth(); // 0 = Jan, 10 = Nov, 11 = Dez
         const day = now.getDate();
 
-        // 29. und 30. November (und danach im gesamten Dezember)
         if (num === 29 || num === 30) {
             if (month === 11) return true;
             if (month === 10 && day >= num) return true;
             return false;
         }
 
-        // 1. bis 24. Dezember (und alle Tage danach im Dezember)
         if (typeof num === 'number' && num >= 1 && num <= 24) {
             if (month === 11 && day >= num) return true;
             return false;
@@ -382,7 +380,7 @@
 
     function openDoorContent(type) {
         closeDoorModal();
-        alert(`Hier öffnet sich dann Türchen ${selectedDoorNumber} mit Inhalt: ${type.toUpperCase()}`);
+        alert('Hier öffnet sich dann Türchen ' + selectedDoorNumber + ' mit Inhalt: ' + type.toUpperCase());
     }
 
     /* REIN WEISSE SCHNEEFLOCKEN & GLITZER */
@@ -398,7 +396,7 @@
             const el = document.createElement('div');
             el.className = 'snow-particle';
             el.innerText = snowIcons[Math.floor(Math.random() * snowIcons.length)];
-            
+
             const z = Math.random() * 800 - 200;
             const scale = Math.max(0.3, (z + 200) / 800);
 
@@ -407,7 +405,7 @@
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight,
                 z: z,
-                speedX: (Math.random() * 0.4 - 0.2), 
+                speedX: (Math.random() * 0.4 - 0.2),
                 speedY: (Math.random() * 3.0 + 2.0) * scale,
                 size: Math.floor(Math.random() * 12 + 14) * scale,
                 opacity: Math.random() * 0.8 + 0.2
@@ -424,7 +422,7 @@
         snowParticles.forEach(p => {
             const effectiveSpeedY = p.speedY - (scrollVelocityY * 0.2);
             const effectiveSpeedX = p.speedX - (scrollVelocityX * 0.25);
-            
+
             p.y += effectiveSpeedY;
             p.x += effectiveSpeedX;
 
@@ -455,10 +453,10 @@
         scrollContainer.addEventListener('scroll', () => {
             const currentY = scrollContainer.scrollTop;
             const currentX = scrollContainer.scrollLeft;
-            
+
             scrollVelocityY = currentY - lastScrollY;
             scrollVelocityX = currentX - lastScrollX;
-            
+
             lastScrollY = currentY;
             lastScrollX = currentX;
         });
@@ -478,4 +476,16 @@
                 adventAudio.play().then(() => {
                     document.removeEventListener('pointerdown', tryPlayAudio);
                     document.removeEventListener('touchstart', tryPlayAudio);
-                    document.
+                    document.removeEventListener('scroll', tryPlayAudio, true);
+                }).catch(() => {});
+            };
+
+            tryPlayAudio();
+            document.addEventListener('pointerdown', tryPlayAudio, { passive: true });
+            document.addEventListener('touchstart', tryPlayAudio, { passive: true });
+            document.addEventListener('scroll', tryPlayAudio, { passive: true, capture: true });
+        }
+    };
+</script>
+</body>
+</html>
