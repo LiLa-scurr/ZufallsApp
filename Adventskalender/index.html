@@ -221,6 +221,54 @@
             backdrop-filter: blur(5px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
+
+        /* BONUS-ÜBERRASCHUNG BUTTON (AB 1. DEZEMBER) */
+        .btn-bonus {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 25;
+            padding: 11px 18px;
+            font-size: 14px;
+            border-radius: 30px;
+            border: 1px solid #feb632;
+            background: linear-gradient(135deg, rgba(45, 35, 20, 0.92), rgba(30, 40, 55, 0.92));
+            color: #ffd57e;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(254, 182, 50, 0.35);
+            display: none;
+        }
+
+        .btn-bonus:active {
+            transform: scale(0.95);
+        }
+
+        /* DAUERHAFTER MUSIK-WECHSEL BUTTON OBEN RECHTS */
+        .btn-music-switch {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 25;
+            padding: 10px 16px;
+            font-size: 13px;
+            border-radius: 30px;
+            border: 1px solid #b2ebf2;
+            background: rgba(30, 40, 55, 0.88);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            display: none;
+        }
+
+        .btn-music-switch:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -229,9 +277,22 @@
     <div id="snow-container" class="snow-container"></div>
 
     <!-- AUDIO -->
-    <!--
-    <audio id="advent-audio" src="advent-music.mp3" loop autoplay playsinline></audio> <!-- OG-Musik -->
-    <audio id="advent-audio" src="aschenbroedel-music.mp3" loop autoplay playsinline></audio> <!-- Aschenbrödel-Musik -->
+    <audio id="advent-audio" src="aschenbroedel-music.mp3" loop autoplay playsinline></audio>
+
+    <!-- BONUS-ÜBERRASCHUNG & MUSIK-WECHSEL BUTTONS OBEN RECHTS -->
+    <button id="btn-bonus" class="btn-bonus" onclick="openBonusModal()">🎁 Bonus-Überraschung</button>
+    <button id="btn-music-switch" class="btn-music-switch" onclick="toggleMusicTrack()">🎵 Musik wechseln</button>
+
+    <!-- POPUP FÜR BONUS-ÜBERRASCHUNG -->
+    <div id="bonus-modal" class="popup-overlay">
+        <div class="popup-content">
+            <h2>🎁 Bonus-Überraschung</h2>
+            <p>Du hast eine kleine Extra-Überraschung freigeschaltet! Ab sofort kannst du oben rechts jederzeit zwischen zwei Melodien wechseln:</p>
+            <p id="bonus-current-track" class="door-prompt">Aktuell läuft: Aschenbrödel-Musik</p>
+            <button class="option-btn" onclick="toggleMusicTrack()">🎶 Jetzt Musik wechseln</button>
+            <button onclick="closeBonusModal()" style="margin-top: 12px;">Fertig</button>
+        </div>
+    </div>
 
     <!-- POPUP -->
     <div id="door-options-modal" class="popup-overlay">
@@ -287,7 +348,22 @@
     let scrollVelocityY = 0;
 
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
+    const BONUS_ACTIVATED_STORAGE_KEY = 'lotti_advent_bonus_music_unlocked_v1';
+    const MUSIC_TRACK_STORAGE_KEY = 'lotti_advent_selected_music_v1';
     const TEST_DOORS = ['Test 1', 'Test 2', 'Test 3', 'Test 4'];
+
+    const MUSIC_TRACKS = {
+        aschenbroedel: {
+            src: 'aschenbroedel-music.mp3',
+            name: 'Aschenbrödel-Musik',
+            switchLabel: '🎵 Zu Adventsmusik'
+        },
+        advent: {
+            src: 'advent-music.mp3',
+            name: 'Adventsmusik',
+            switchLabel: '🎵 Zu Aschenbrödel'
+        }
+    };
 
     const contentPagesByType = {
         spruch: 'spruch.html',
@@ -302,6 +378,102 @@
         sudoku: 'Ein Sudoku',
         video: 'Ein Video'
     };
+
+    function isBonusAvailable() {
+        const now = new Date();
+        // Ab 1. Dezember verfügbar (Monat 11 = Dezember)
+        return now.getMonth() === 11 && now.getDate() >= 1;
+    }
+
+    function isBonusActivated() {
+        try {
+            return localStorage.getItem(BONUS_ACTIVATED_STORAGE_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function setBonusActivated() {
+        try {
+            localStorage.setItem(BONUS_ACTIVATED_STORAGE_KEY, 'true');
+        } catch (e) {}
+    }
+
+    function getSelectedTrackKey() {
+        try {
+            const saved = localStorage.getItem(MUSIC_TRACK_STORAGE_KEY);
+            if (saved && Object.prototype.hasOwnProperty.call(MUSIC_TRACKS, saved)) {
+                return saved;
+            }
+        } catch (e) {}
+        return 'aschenbroedel';
+    }
+
+    function setSelectedTrackKey(key) {
+        try {
+            localStorage.setItem(MUSIC_TRACK_STORAGE_KEY, key);
+        } catch (e) {}
+    }
+
+    function applyMusicTrack(trackKey, shouldPlay) {
+        const track = MUSIC_TRACKS[trackKey] || MUSIC_TRACKS.aschenbroedel;
+        const audio = document.getElementById('advent-audio');
+        if (audio) {
+            const wasPlaying = !audio.paused;
+            if (!audio.getAttribute('src') || audio.getAttribute('src') !== track.src) {
+                audio.src = track.src;
+                audio.load();
+            }
+            if (shouldPlay || wasPlaying) {
+                audio.play().catch(() => {});
+            }
+        }
+        updateMusicButtonsUI();
+    }
+
+    function updateMusicButtonsUI() {
+        const bonusBtn = document.getElementById('btn-bonus');
+        const switchBtn = document.getElementById('btn-music-switch');
+        const trackStatus = document.getElementById('bonus-current-track');
+
+        const currentKey = getSelectedTrackKey();
+        const track = MUSIC_TRACKS[currentKey] || MUSIC_TRACKS.aschenbroedel;
+
+        if (trackStatus) {
+            trackStatus.innerText = 'Aktuell läuft: ' + track.name;
+        }
+        if (switchBtn) {
+            switchBtn.innerText = track.switchLabel;
+        }
+
+        if (isBonusActivated()) {
+            if (bonusBtn) bonusBtn.style.display = 'none';
+            if (switchBtn) switchBtn.style.display = 'inline-block';
+        } else if (isBonusAvailable()) {
+            if (bonusBtn) bonusBtn.style.display = 'inline-block';
+            if (switchBtn) switchBtn.style.display = 'none';
+        } else {
+            if (bonusBtn) bonusBtn.style.display = 'none';
+            if (switchBtn) switchBtn.style.display = 'none';
+        }
+    }
+
+    function openBonusModal() {
+        setBonusActivated();
+        updateMusicButtonsUI();
+        document.getElementById('bonus-modal').classList.add('visible');
+    }
+
+    function closeBonusModal() {
+        document.getElementById('bonus-modal').classList.remove('visible');
+    }
+
+    function toggleMusicTrack() {
+        const currentKey = getSelectedTrackKey();
+        const nextKey = currentKey === 'aschenbroedel' ? 'advent' : 'aschenbroedel';
+        setSelectedTrackKey(nextKey);
+        applyMusicTrack(nextKey, true);
+    }
 
     function isTestDoor(num) {
         return typeof num === 'string' && num.startsWith('Test');
@@ -614,6 +786,8 @@
         initSnow3D();
         updateSnow3D();
         centerScrollView();
+
+        applyMusicTrack(getSelectedTrackKey(), false);
 
         const adventAudio = document.getElementById('advent-audio');
         if (adventAudio) {
