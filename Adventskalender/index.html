@@ -56,6 +56,10 @@
             -webkit-backdrop-filter: blur(8px);
         }
 
+        #choice-locked-modal {
+            z-index: 120;
+        }
+
         .popup-overlay.visible {
             opacity: 1;
             pointer-events: auto;
@@ -80,7 +84,7 @@
             margin-top: 0;
             font-size: 22px;
             color: #feb632;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .popup-content p {
@@ -88,6 +92,12 @@
             line-height: 1.5;
             margin-bottom: 15px;
             color: #eeeeee;
+        }
+
+        .door-prompt {
+            font-size: 14px !important;
+            color: #ffd57e !important;
+            margin-bottom: 14px !important;
         }
 
         .popup-content button {
@@ -181,9 +191,11 @@
         .advent-door-number {
             position: relative;
             z-index: 2;
-            font-size: 22px;
+            font-size: 17px;
             font-weight: 900;
             color: #0d47a1;
+            text-align: center;
+            line-height: 1.1;
             text-shadow: 0 0 6px #ffffff, 0 0 3px #ffffff, 0 1px 2px rgba(0,0,0,0.8);
         }
 
@@ -217,20 +229,28 @@
     <div id="snow-container" class="snow-container"></div>
 
     <!-- AUDIO -->
-    <!--
-    <audio id="advent-audio" src="advent-music.mp3" loop autoplay playsinline></audio> <!-- OG-Musik -->
-    <audio id="advent-audio" src="aschenbroedel-music.mp3" loop autoplay playsinline></audio> <!-- Aschenbrödel-Musik -->
+    <audio id="advent-audio" src="advent-music.mp3" loop autoplay playsinline></audio>
 
     <!-- POPUP -->
     <div id="door-options-modal" class="popup-overlay">
         <div class="popup-content">
             <h2 id="door-modal-title">Türchen</h2>
-            <p>Was möchtest du heute entdecken?</p>
+            <p class="door-prompt">Entscheide dich heute für eine Möglichkeit.</p>
+            <p style="margin-bottom: 10px;">Was möchtest du heute entdecken?</p>
             <button class="option-btn" onclick="openDoorContent('spruch')">💬 Ein Spruch</button>
             <button class="option-btn" onclick="openDoorContent('bild')">🖼️ Ein Bild</button>
             <button class="option-btn" onclick="openDoorContent('sudoku')">🧩 Ein Sudoku</button>
             <button class="option-btn" onclick="openDoorContent('video')">🎬 Ein Video</button>
             <button onclick="closeDoorModal()" style="background: #545456; color: white; margin-top: 15px;">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- POPUP WENN BEREITS EINE ANDERE MÖGLICHKEIT GEWÄHLT WURDE -->
+    <div id="choice-locked-modal" class="popup-overlay">
+        <div class="popup-content">
+            <h2>Schon entschieden</h2>
+            <p id="choice-locked-text">Dafür musst du dich an einem anderen Tag entscheiden.</p>
+            <button onclick="closeChoiceLockedModal()">Okay</button>
         </div>
     </div>
 
@@ -264,12 +284,52 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
+    const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
+    const TEST_DOORS = ['Test 1', 'Test 2', 'Test 3', 'Test 4'];
+
     const contentPagesByType = {
         spruch: 'spruch.html',
         bild: 'bild.html',
         sudoku: 'sudoku.html',
         video: 'video.html'
     };
+
+    const optionLabelsByType = {
+        spruch: 'Ein Spruch',
+        bild: 'Ein Bild',
+        sudoku: 'Ein Sudoku',
+        video: 'Ein Video'
+    };
+
+    function isTestDoor(num) {
+        return typeof num === 'string' && num.startsWith('Test');
+    }
+
+    function loadDoorChoices() {
+        try {
+            const raw = localStorage.getItem(DOOR_CHOICE_STORAGE_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveDoorChoice(doorKey, type) {
+        const choices = loadDoorChoices();
+        if (!Object.prototype.hasOwnProperty.call(choices, String(doorKey))) {
+            choices[String(doorKey)] = type;
+            try {
+                localStorage.setItem(DOOR_CHOICE_STORAGE_KEY, JSON.stringify(choices));
+            } catch (e) {}
+        }
+    }
+
+    function getChosenTypeForDoor(doorKey) {
+        const choices = loadDoorChoices();
+        return choices[String(doorKey)] || null;
+    }
 
     function shuffleArray(array) {
         let currentIndex = array.length, randomIndex;
@@ -305,20 +365,56 @@
         }
     }
 
+    function createDoorElement(num, x, y) {
+        const door = document.createElement('div');
+        door.className = 'advent-door';
+
+        const numSpan = document.createElement('span');
+        numSpan.className = 'advent-door-number';
+        numSpan.innerText = isTestDoor(num) ? num.replace('Test ', 'T') : num;
+        door.appendChild(numSpan);
+
+        door.style.left = x + 'px';
+        door.style.top = y + 'px';
+
+        door.onclick = () => openDoorOptions(num);
+        return door;
+    }
+
     function generateAdventDoors() {
         const canvas = document.getElementById('advent-canvas');
         canvas.innerHTML = '';
 
-        const doorNumbers = ['Test', 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        shuffleArray(doorNumbers);
-
-        const placedDoors = [];
         const doorSize = 80;
         const minDistance = doorSize + 35;
 
         const canvasWidth = canvas.clientWidth;
         const canvasHeight = canvas.clientHeight;
         const padding = 20;
+
+        // 4 Test-Türchen kompakt in der Mitte des Canvas anordnen
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        const offsetX = 58;
+        const offsetY = 58;
+
+        const centerPositions = [
+            { x: centerX - offsetX - doorSize / 2, y: centerY - offsetY - doorSize / 2 },
+            { x: centerX + offsetX - doorSize / 2, y: centerY - offsetY - doorSize / 2 },
+            { x: centerX - offsetX - doorSize / 2, y: centerY + offsetY - doorSize / 2 },
+            { x: centerX + offsetX - doorSize / 2, y: centerY + offsetY - doorSize / 2 }
+        ];
+
+        const placedDoors = [];
+
+        TEST_DOORS.forEach((num, idx) => {
+            const pos = centerPositions[idx];
+            placedDoors.push({ x: pos.x, y: pos.y });
+            canvas.appendChild(createDoorElement(num, pos.x, pos.y));
+        });
+
+        const doorNumbers = [29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+        shuffleArray(doorNumbers);
 
         doorNumbers.forEach((num) => {
             let x, y, collision;
@@ -343,25 +439,12 @@
             } while (collision && attempts < 1000);
 
             placedDoors.push({ x: x, y: y });
-
-            const door = document.createElement('div');
-            door.className = 'advent-door';
-
-            const numSpan = document.createElement('span');
-            numSpan.className = 'advent-door-number';
-            numSpan.innerText = num;
-            door.appendChild(numSpan);
-
-            door.style.left = x + 'px';
-            door.style.top = y + 'px';
-
-            door.onclick = () => openDoorOptions(num);
-            canvas.appendChild(door);
+            canvas.appendChild(createDoorElement(num, x, y));
         });
     }
 
     function isDoorUnlocked(num) {
-        if (num === 'Test') return true;
+        if (isTestDoor(num)) return true;
 
         const now = new Date();
         const month = now.getMonth(); // 0 = Jan, 10 = Nov, 11 = Dez
@@ -389,13 +472,17 @@
         }
 
         selectedDoorNumber = num;
-        document.getElementById('door-modal-title').innerText = num === 'Test' ? 'Test-Türchen' : 'Türchen ' + num;
+        document.getElementById('door-modal-title').innerText = isTestDoor(num) ? num + '-Türchen' : 'Türchen ' + num;
         const modal = document.getElementById('door-options-modal');
         modal.classList.add('visible');
     }
 
     function closeLockedModal() {
         document.getElementById('door-locked-modal').classList.remove('visible');
+    }
+
+    function closeChoiceLockedModal() {
+        document.getElementById('choice-locked-modal').classList.remove('visible');
     }
 
     function closeDoorModal() {
@@ -405,6 +492,17 @@
 
     function openDoorContent(type) {
         const doorKey = selectedDoorNumber;
+        const alreadyChosenType = getChosenTypeForDoor(doorKey);
+
+        if (alreadyChosenType && alreadyChosenType !== type) {
+            const chosenName = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
+            document.getElementById('choice-locked-text').innerText =
+                'Du hast dich hier schon für „' + chosenName + '“ entschieden. Dafür musst du dich an einem anderen Tag entscheiden.';
+            document.getElementById('choice-locked-modal').classList.add('visible');
+            return;
+        }
+
+        saveDoorChoice(doorKey, type);
         const page = contentPagesByType[type];
         closeDoorModal();
 
