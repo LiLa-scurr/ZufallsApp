@@ -39,14 +39,8 @@
             font-size: 18px;
             line-height: 1.55;
             color: #f8f9fa;
-            margin: 0 0 16px 0;
-            font-style: italic;
-        }
-
-        .spruch-counter {
-            font-size: 12px;
-            color: #b0bec5;
             margin: 0 0 18px 0;
+            font-style: italic;
         }
 
         .spruch-btn {
@@ -66,7 +60,6 @@
     <div class="spruch-box">
         <h2 id="spruch-title">Spruch</h2>
         <p id="spruch-text" class="spruch-text"></p>
-        <p id="spruch-counter" class="spruch-counter"></p>
         <button class="spruch-btn" onclick="closeOverlay()">Schließen</button>
     </div>
 
@@ -95,19 +88,20 @@
             "Das Schönste an besonderen Tagen ist, sie teilen zu können."
         ];
 
-        const STORAGE_KEY = 'lotti_advent_used_sprueche_v1';
+        const USED_STORAGE_KEY = 'lotti_advent_used_sprueche_v1';
+        const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_sprueche_v1';
 
         const params = new URLSearchParams(window.location.search);
-        const doorKey = params.get('door');
+        const doorKey = params.get('door') || 'default';
 
-        if (doorKey) {
+        if (params.get('door')) {
             document.getElementById('spruch-title').innerText =
                 doorKey === 'Test' ? 'Spruch – Test-Türchen' : 'Spruch – Türchen ' + doorKey;
         }
 
         function loadUsedIndices() {
             try {
-                const raw = localStorage.getItem(STORAGE_KEY);
+                const raw = localStorage.getItem(USED_STORAGE_KEY);
                 if (!raw) return [];
                 const parsed = JSON.parse(raw);
                 if (!Array.isArray(parsed)) return [];
@@ -119,18 +113,44 @@
 
         function saveUsedIndices(indices) {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(indices));
+                localStorage.setItem(USED_STORAGE_KEY, JSON.stringify(indices));
             } catch (e) {}
         }
 
-        function pickNextSpruch() {
+        function loadDoorMap() {
+            try {
+                const raw = localStorage.getItem(DOOR_MAP_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveDoorMap(map) {
+            try {
+                localStorage.setItem(DOOR_MAP_STORAGE_KEY, JSON.stringify(map));
+            } catch (e) {}
+        }
+
+        function getSpruchForDoor(door) {
             if (SPRUECHE.length === 0) {
-                return { text: "Keine Sprüche hinterlegt.", usedCount: 0, total: 0 };
+                return "Keine Sprüche hinterlegt.";
             }
 
-            let used = loadUsedIndices();
+            const doorMap = loadDoorMap();
 
-            // Wenn schon alle Sprüche dran waren, wieder von vorne beginnen
+            // Wenn dieses Türchen schon einen gespeicherten Spruch hat, genau diesen wieder zeigen
+            if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
+                const savedIndex = doorMap[door];
+                if (Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < SPRUECHE.length) {
+                    return SPRUECHE[savedIndex];
+                }
+            }
+
+            // Sonst einen noch nicht verwendeten Spruch zufällig ziehen
+            let used = loadUsedIndices();
             if (used.length >= SPRUECHE.length) {
                 used = [];
             }
@@ -146,11 +166,10 @@
             used.push(chosenIndex);
             saveUsedIndices(used);
 
-            return {
-                text: SPRUECHE[chosenIndex],
-                usedCount: used.length,
-                total: SPRUECHE.length
-            };
+            doorMap[door] = chosenIndex;
+            saveDoorMap(doorMap);
+
+            return SPRUECHE[chosenIndex];
         }
 
         function closeOverlay() {
@@ -161,10 +180,7 @@
             }
         }
 
-        const result = pickNextSpruch();
-        document.getElementById('spruch-text').innerText = '„' + result.text + '“';
-        document.getElementById('spruch-counter').innerText =
-            'Spruch ' + result.usedCount + ' von ' + result.total + ' in dieser Runde';
+        document.getElementById('spruch-text').innerText = '„' + getSpruchForDoor(doorKey) + '“';
     </script>
 </body>
 </html>
