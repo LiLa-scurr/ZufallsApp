@@ -1,1 +1,170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Spruch des Tages</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
 
+        .spruch-box {
+            background: rgba(30, 30, 30, 0.92);
+            padding: 28px 22px;
+            border-radius: 20px;
+            max-width: 88vw;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .spruch-box h2 {
+            margin: 0 0 14px 0;
+            font-size: 22px;
+            color: #feb632;
+        }
+
+        .spruch-text {
+            font-size: 18px;
+            line-height: 1.55;
+            color: #f8f9fa;
+            margin: 0 0 16px 0;
+            font-style: italic;
+        }
+
+        .spruch-counter {
+            font-size: 12px;
+            color: #b0bec5;
+            margin: 0 0 18px 0;
+        }
+
+        .spruch-btn {
+            background: #ffffff;
+            color: #1e1e1e;
+            font-size: 15px;
+            padding: 11px 26px;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="spruch-box">
+        <h2 id="spruch-title">Spruch</h2>
+        <p id="spruch-text" class="spruch-text"></p>
+        <p id="spruch-counter" class="spruch-counter"></p>
+        <button class="spruch-btn" onclick="closeOverlay()">Schließen</button>
+    </div>
+
+    <script>
+        // Hier deine 20 Sprüche eintragen (Index 0 bis 19)
+        const SPRUECHE = [
+            "Manchmal sind es die kleinen, leisen Momente, die im Herzen am lautesten klingen.",
+            "Ein Lächeln kostet nichts und macht den Tag sofort ein Stück heller.",
+            "Wo Herz und Wärme sind, fühlt sich selbst der kälteste Wintertag gemütlich an.",
+            "Du bist mein Lieblingsort, ganz egal wo wir gerade sind.",
+            "Kleine Funken reichen manchmal aus, um eine ganze Dunkelheit zu erhellen.",
+            "Glück ist oft genau das, was passiert, während wir gar nicht danach suchen.",
+            "Jeder Tag bringt eine neue kleine Chance auf einen schönen Moment.",
+            "Zusammen fühlt sich selbst ein ganz gewöhnlicher Tag besonders an.",
+            "Ein bisschen Ruhe, eine warme Tasse und ein guter Gedanke – mehr braucht es manchmal nicht.",
+            "Die schönsten Erinnerungen entstehen meistens ganz ungeplant.",
+            "Wer andere gerne zum Lächeln bringt, trägt selbst ein Stück Sonne in sich.",
+            "Manchmal ist das Wichtigste im Leben einfach nur: füreinander da zu sein.",
+            "Auch kleine Schritte führen ans Ziel, solange man sie mit Freude geht.",
+            "Ein herzliches Wort kann einen ganzen Tag verändern.",
+            "In der Ruhe liegt oft die beste Antwort auf laute Gedanken.",
+            "Schöne Dinge brauchen keine große Bühne – oft reicht ein ehrlicher Blick.",
+            "Jeder Tag hat seinen eigenen kleinen Zauber, wenn man genau hinschaut.",
+            "Gemeinsames Lachen ist einer der schönsten Fäden, die Menschen verbinden.",
+            "Manchmal ist ein kurzer Moment zum Durchatmen das beste Geschenk.",
+            "Das Schönste an besonderen Tagen ist, sie teilen zu können."
+        ];
+
+        const STORAGE_KEY = 'lotti_advent_used_sprueche_v1';
+
+        const params = new URLSearchParams(window.location.search);
+        const doorKey = params.get('door');
+
+        if (doorKey) {
+            document.getElementById('spruch-title').innerText =
+                doorKey === 'Test' ? 'Spruch – Test-Türchen' : 'Spruch – Türchen ' + doorKey;
+        }
+
+        function loadUsedIndices() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter(idx => Number.isInteger(idx) && idx >= 0 && idx < SPRUECHE.length);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveUsedIndices(indices) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(indices));
+            } catch (e) {}
+        }
+
+        function pickNextSpruch() {
+            if (SPRUECHE.length === 0) {
+                return { text: "Keine Sprüche hinterlegt.", usedCount: 0, total: 0 };
+            }
+
+            let used = loadUsedIndices();
+
+            // Wenn schon alle Sprüche dran waren, wieder von vorne beginnen
+            if (used.length >= SPRUECHE.length) {
+                used = [];
+            }
+
+            const remaining = [];
+            for (let i = 0; i < SPRUECHE.length; i++) {
+                if (!used.includes(i)) {
+                    remaining.push(i);
+                }
+            }
+
+            const chosenIndex = remaining[Math.floor(Math.random() * remaining.length)];
+            used.push(chosenIndex);
+            saveUsedIndices(used);
+
+            return {
+                text: SPRUECHE[chosenIndex],
+                usedCount: used.length,
+                total: SPRUECHE.length
+            };
+        }
+
+        function closeOverlay() {
+            if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
+                window.parent.closeContentOverlay();
+            } else if (window.parent && typeof window.parent.closeSudokuOverlay === 'function') {
+                window.parent.closeSudokuOverlay();
+            }
+        }
+
+        const result = pickNextSpruch();
+        document.getElementById('spruch-text').innerText = '„' + result.text + '“';
+        document.getElementById('spruch-counter').innerText =
+            'Spruch ' + result.usedCount + ' von ' + result.total + ' in dieser Runde';
+    </script>
+</body>
+</html>
