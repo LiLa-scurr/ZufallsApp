@@ -196,6 +196,100 @@
             backdrop-filter: blur(5px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
+        /* SUDOKU POP-UP */
+        .sudoku-modal-content {
+            max-width: 92vw;
+            width: 390px;
+            padding: 22px 18px;
+        }
+
+        .sudoku-sub {
+            font-size: 13px !important;
+            color: #cccccc !important;
+            margin-bottom: 12px !important;
+        }
+
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            background: #556b82;
+            padding: 4px;
+            border-radius: 12px;
+            margin: 0 auto 14px auto;
+            max-width: 330px;
+        }
+
+        .sudoku-cell {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border: none;
+            border-radius: 6px;
+            background: #1f2933;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 800;
+            text-align: center;
+            padding: 0;
+            box-sizing: border-box;
+            outline: none;
+            caret-color: #feb632;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .sudoku-cell.given {
+            background: #2e3b4e;
+            color: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .sudoku-cell:not(.given) {
+            color: #7dd3fc;
+        }
+
+        .sudoku-cell.block-right {
+            margin-right: 4px;
+        }
+
+        .sudoku-cell.block-bottom {
+            margin-bottom: 4px;
+        }
+
+        .sudoku-cell.selected {
+            box-shadow: inset 0 0 0 2px #feb632;
+            background: #334155;
+        }
+
+        .sudoku-cell.highlighted {
+            background: #feb632 !important;
+            color: #111827 !important;
+        }
+
+        .sudoku-cell.conflict {
+            background: #991b1b !important;
+            color: #fecaca !important;
+        }
+
+        .sudoku-status {
+            min-height: 22px;
+            font-size: 14px !important;
+            font-weight: 600;
+            color: #feb632 !important;
+            margin-bottom: 10px !important;
+        }
+
+        .sudoku-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .sudoku-actions button {
+            padding: 10px 18px;
+            font-size: 14px;
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -225,6 +319,20 @@
             <h2 id="door-locked-title">Türchen noch verschlossen</h2>
             <p>Na neugierig? Leider musst du dich noch etwas gedulden Mausi &lt;3<br>Komm später wieder!</p>
             <button onclick="closeLockedModal()">Okay</button>
+        </div>
+    </div>
+
+    <!-- SUDOKU POP-UP -->
+    <div id="sudoku-modal" class="popup-overlay">
+        <div class="popup-content sudoku-modal-content">
+            <h2 id="sudoku-modal-title">Sudoku</h2>
+            <p class="sudoku-sub">Zahlen 1–6 in jede Zeile, Spalte &amp; jeden 2×3-Block. Tippe auf eine Zahl zum Hervorheben.</p>
+            <div id="sudoku-board" class="sudoku-board"></div>
+            <p id="sudoku-status" class="sudoku-status"></p>
+            <div class="sudoku-actions">
+                <button onclick="resetCurrentSudoku()" style="background: #334155; color: white;">Neu starten</button>
+                <button onclick="closeSudokuModal()">Schließen</button>
+            </div>
         </div>
     </div>
 
@@ -379,8 +487,13 @@
     }
 
     function openDoorContent(type) {
+        const doorKey = selectedDoorNumber;
         closeDoorModal();
-        alert('Hier öffnet sich dann Türchen ' + selectedDoorNumber + ' mit Inhalt: ' + type.toUpperCase());
+        if (type === 'sudoku') {
+            openSudokuModal(doorKey);
+            return;
+        }
+        alert('Hier öffnet sich dann Türchen ' + doorKey + ' mit Inhalt: ' + type.toUpperCase());
     }
 
     /* REIN WEISSE SCHNEEFLOCKEN & GLITZER */
@@ -486,6 +599,306 @@
             document.addEventListener('scroll', tryPlayAudio, { passive: true, capture: true });
         }
     };
+    const SUDOKU_STORAGE_PREFIX = 'lotti_advent_sudoku_v1_';
+
+    const baseSudokuSolutions = [
+        [
+            [1, 2, 3, 4, 5, 6],
+            [4, 5, 6, 1, 2, 3],
+            [2, 3, 1, 5, 6, 4],
+            [5, 6, 4, 2, 3, 1],
+            [3, 1, 2, 6, 4, 5],
+            [6, 4, 5, 3, 1, 2]
+        ],
+        [
+            [2, 4, 6, 1, 3, 5],
+            [1, 3, 5, 2, 4, 6],
+            [6, 2, 4, 3, 5, 1],
+            [3, 5, 1, 6, 2, 4],
+            [4, 6, 2, 5, 1, 3],
+            [5, 1, 3, 4, 6, 2]
+        ],
+        [
+            [3, 6, 2, 5, 1, 4],
+            [5, 1, 4, 3, 6, 2],
+            [2, 3, 6, 1, 4, 5],
+            [1, 4, 5, 2, 3, 6],
+            [6, 2, 1, 4, 5, 3],
+            [4, 5, 3, 6, 2, 1]
+        ]
+    ];
+
+    const sudokuStateByDoor = {};
+    let activeSudokuDoor = null;
+    let activeSudokuCellIndex = null;
+    let highlightedDigit = null;
+
+    function seededRandom(seed) {
+        let s = seed % 2147483647;
+        if (s <= 0) s += 2147483646;
+        return function () {
+            s = (s * 16807) % 2147483647;
+            return (s - 1) / 2147483646;
+        };
+    }
+
+    function createSudokuPuzzleForDoor(doorKey) {
+        const keyStr = String(doorKey);
+        let seed = 0;
+        for (let i = 0; i < keyStr.length; i++) {
+            seed = seed * 31 + keyStr.charCodeAt(i);
+        }
+        const rand = seededRandom(seed + 101);
+        const base = baseSudokuSolutions[Math.abs(seed) % baseSudokuSolutions.length];
+
+        const digits = [1, 2, 3, 4, 5, 6];
+        for (let i = digits.length - 1; i > 0; i--) {
+            const j = Math.floor(rand() * (i + 1));
+            [digits[i], digits[j]] = [digits[j], digits[i]];
+        }
+
+        const solution = base.map(row => row.map(val => digits[val - 1]));
+        const given = Array.from({ length: 6 }, () => Array(6).fill(false));
+        const puzzle = Array.from({ length: 6 }, () => Array(6).fill(0));
+
+        // Einfaches Sudoku: 3 vorgegebene Zahlen pro Zeile (18 von 36 Feldern)
+        for (let r = 0; r < 6; r++) {
+            const cols = [0, 1, 2, 3, 4, 5];
+            for (let i = cols.length - 1; i > 0; i--) {
+                const j = Math.floor(rand() * (i + 1));
+                [cols[i], cols[j]] = [cols[j], cols[i]];
+            }
+            for (let k = 0; k < 3; k++) {
+                const c = cols[k];
+                given[r][c] = true;
+                puzzle[r][c] = solution[r][c];
+            }
+        }
+
+        return {
+            solution,
+            given,
+            values: puzzle
+        };
+    }
+
+    function saveSudokuState(doorKey, state) {
+        try {
+            localStorage.setItem(SUDOKU_STORAGE_PREFIX + String(doorKey), JSON.stringify(state));
+        } catch (e) {}
+    }
+
+    function loadSudokuState(doorKey) {
+        try {
+            const raw = localStorage.getItem(SUDOKU_STORAGE_PREFIX + String(doorKey));
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.values) && Array.isArray(parsed.given) && Array.isArray(parsed.solution)) {
+                return parsed;
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    function getOrCreateSudokuState(doorKey) {
+        if (sudokuStateByDoor[doorKey]) {
+            return sudokuStateByDoor[doorKey];
+        }
+        const saved = loadSudokuState(doorKey);
+        if (saved) {
+            sudokuStateByDoor[doorKey] = saved;
+            return saved;
+        }
+        const fresh = createSudokuPuzzleForDoor(doorKey);
+        sudokuStateByDoor[doorKey] = fresh;
+        saveSudokuState(doorKey, fresh);
+        return fresh;
+    }
+
+    function getConflictingCells(values) {
+        const conflicts = new Set();
+
+        for (let i = 0; i < 36; i++) {
+            const r = Math.floor(i / 6);
+            const c = i % 6;
+            const v = values[r][c];
+            if (!v) continue;
+
+            for (let cc = 0; cc < 6; cc++) {
+                if (cc !== c && values[r][cc] === v) {
+                    conflicts.add(i);
+                    conflicts.add(r * 6 + cc);
+                }
+            }
+
+            for (let rr = 0; rr < 6; rr++) {
+                if (rr !== r && values[rr][c] === v) {
+                    conflicts.add(i);
+                    conflicts.add(rr * 6 + c);
+                }
+            }
+
+            const br = Math.floor(r / 2) * 2;
+            const bc = Math.floor(c / 3) * 3;
+            for (let rr = br; rr < br + 2; rr++) {
+                for (let cc = bc; cc < bc + 3; cc++) {
+                    if ((rr !== r || cc !== c) && values[rr][cc] === v) {
+                        conflicts.add(i);
+                        conflicts.add(rr * 6 + cc);
+                    }
+                }
+            }
+        }
+
+        return conflicts;
+    }
+
+    function isSudokuSolved(state) {
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 6; c++) {
+                if (state.values[r][c] !== state.solution[r][c]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function renderSudokuBoard(focusIndex = null) {
+        if (activeSudokuDoor === null) return;
+        const state = getOrCreateSudokuState(activeSudokuDoor);
+        const boardEl = document.getElementById('sudoku-board');
+        const statusEl = document.getElementById('sudoku-status');
+        const conflicts = getConflictingCells(state.values);
+
+        boardEl.innerHTML = '';
+
+        for (let i = 0; i < 36; i++) {
+            const r = Math.floor(i / 6);
+            const c = i % 6;
+            const val = state.values[r][c];
+            const isGiven = state.given[r][c];
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.inputMode = 'numeric';
+            input.maxLength = 1;
+            input.className = 'sudoku-cell';
+            if (isGiven) input.classList.add('given');
+            if (c === 2) input.classList.add('block-right');
+            if (r === 1 || r === 3) input.classList.add('block-bottom');
+
+            if (activeSudokuCellIndex === i) {
+                input.classList.add('selected');
+            }
+            if (highlightedDigit && val === highlightedDigit) {
+                input.classList.add('highlighted');
+            }
+            if (conflicts.has(i)) {
+                input.classList.add('conflict');
+            }
+
+            input.value = val ? String(val) : '';
+
+            input.addEventListener('click', () => {
+                activeSudokuCellIndex = i;
+                const currentVal = state.values[r][c];
+                if (currentVal) {
+                    highlightedDigit = (highlightedDigit === currentVal) ? null : currentVal;
+                } else {
+                    highlightedDigit = null;
+                }
+                renderSudokuBoard(isGiven ? null : i);
+            });
+
+            input.addEventListener('beforeinput', (e) => {
+                if (isGiven) {
+                    e.preventDefault();
+                    return;
+                }
+                if (e.data && !/^[1-6]$/.test(e.data)) {
+                    e.preventDefault();
+                }
+            });
+
+            input.addEventListener('input', () => {
+                if (isGiven) {
+                    input.value = val ? String(val) : '';
+                    return;
+                }
+
+                const raw = input.value.replace(/[^1-6]/g, '');
+                const digit = raw ? parseInt(raw.slice(-1), 10) : 0;
+
+                state.values[r][c] = digit;
+                activeSudokuCellIndex = i;
+                highlightedDigit = digit ? digit : null;
+                saveSudokuState(activeSudokuDoor, state);
+
+                renderSudokuBoard(i);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+                    if (!isGiven) {
+                        e.preventDefault();
+                        state.values[r][c] = 0;
+                        highlightedDigit = null;
+                        saveSudokuState(activeSudokuDoor, state);
+                        renderSudokuBoard(i);
+                    }
+                }
+            });
+
+            boardEl.appendChild(input);
+        }
+
+        if (isSudokuSolved(state)) {
+            statusEl.innerText = 'Super gemacht! Das Sudoku ist gelöst!';
+        } else if (conflicts.size > 0) {
+            statusEl.innerText = 'Rot markierte Zahlen doppeln sich in Zeile, Spalte oder Block.';
+        } else if (highlightedDigit) {
+            statusEl.innerText = 'Alle ' + highlightedDigit + 'en sind hervorgehoben.';
+        } else {
+            statusEl.innerText = '';
+        }
+
+        if (focusIndex !== null) {
+            const target = boardEl.children[focusIndex];
+            if (target) {
+                target.focus({ preventScroll: true });
+                if (target.setSelectionRange && target.value) {
+                    target.setSelectionRange(1, 1);
+                }
+            }
+        }
+    }
+
+    function openSudokuModal(doorKey) {
+        activeSudokuDoor = doorKey;
+        activeSudokuCellIndex = null;
+        highlightedDigit = null;
+        document.getElementById('sudoku-modal-title').innerText =
+            doorKey === 'Test' ? 'Sudoku – Test-Türchen' : 'Sudoku – Türchen ' + doorKey;
+        renderSudokuBoard();
+        document.getElementById('sudoku-modal').classList.add('visible');
+    }
+
+    function closeSudokuModal() {
+        document.getElementById('sudoku-modal').classList.remove('visible');
+        activeSudokuCellIndex = null;
+        highlightedDigit = null;
+    }
+
+    function resetCurrentSudoku() {
+        if (activeSudokuDoor === null) return;
+        const fresh = createSudokuPuzzleForDoor(activeSudokuDoor);
+        sudokuStateByDoor[activeSudokuDoor] = fresh;
+        saveSudokuState(activeSudokuDoor, fresh);
+        activeSudokuCellIndex = null;
+        highlightedDigit = null;
+        renderSudokuBoard();
+    }
 </script>
 </body>
 </html>
