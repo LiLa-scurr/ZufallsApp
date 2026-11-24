@@ -112,102 +112,6 @@
             border: 1px solid #34495e !important;
         }
 
-        /* SUDOKU POP-UP */
-        .sudoku-modal-content {
-            max-width: 92vw;
-            width: 390px;
-            padding: 22px 18px;
-        }
-
-        .sudoku-sub {
-            font-size: 13px !important;
-            color: #cccccc !important;
-            margin-bottom: 12px !important;
-        }
-
-        .sudoku-board {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 3px;
-            background: #556b82;
-            padding: 4px;
-            border-radius: 12px;
-            margin: 0 auto 14px auto;
-            max-width: 330px;
-        }
-
-        .sudoku-cell {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            border: none;
-            border-radius: 6px;
-            background: #1f2933;
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 800;
-            text-align: center;
-            padding: 0;
-            box-sizing: border-box;
-            outline: none;
-            caret-color: #feb632;
-            transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
-        }
-
-        .sudoku-cell.given {
-            background: #2e3b4e;
-            color: #f8f9fa;
-            cursor: pointer;
-        }
-
-        .sudoku-cell:not(.given) {
-            color: #7dd3fc;
-        }
-
-        /* 2x3 Block-Abgrenzung */
-        .sudoku-cell.block-right {
-            margin-right: 4px;
-        }
-
-        .sudoku-cell.block-bottom {
-            margin-bottom: 4px;
-        }
-
-        .sudoku-cell.selected {
-            box-shadow: inset 0 0 0 2px #feb632;
-            background: #334155;
-        }
-
-        .sudoku-cell.highlighted {
-            background: #feb632 !important;
-            color: #111827 !important;
-        }
-
-        .sudoku-cell.conflict {
-            background: #991b1b !important;
-            color: #fecaca !important;
-        }
-
-        .sudoku-status {
-            min-height: 22px;
-            font-size: 14px !important;
-            font-weight: 600;
-            color: #feb632 !important;
-            margin-bottom: 10px !important;
-        }
-
-        .sudoku-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .sudoku-actions button {
-            padding: 10px 18px;
-            font-size: 14px;
-            margin-top: 0;
-        }
-
         /* SCROLLBEREICH */
         .advent-scroll-container {
             width: 100vw;
@@ -324,20 +228,6 @@
         </div>
     </div>
 
-    <!-- SUDOKU POP-UP -->
-    <div id="sudoku-modal" class="popup-overlay">
-        <div class="popup-content sudoku-modal-content">
-            <h2 id="sudoku-modal-title">Sudoku</h2>
-            <p class="sudoku-sub">Zahlen 1–6 in jede Zeile, Spalte &amp; jeden 2×3-Block. Klicke auf eine Zahl zum Hervorheben.</p>
-            <div id="sudoku-board" class="sudoku-board"></div>
-            <p id="sudoku-status" class="sudoku-status"></p>
-            <div class="sudoku-actions">
-                <button onclick="resetCurrentSudoku()" style="background: #334155; color: white;">Neu starten</button>
-                <button onclick="closeSudokuModal()">Schließen</button>
-            </div>
-        </div>
-    </div>
-
     <!-- KANVAS CONTAINER -->
     <div id="advent-scroll-container" class="advent-scroll-container">
         <div id="advent-canvas" class="advent-canvas">
@@ -356,186 +246,246 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
-    // Basis-6x6-Sudoku-Lösungen (2 Zeilen x 3 Spalten pro Block)
-    const baseSudokuSolutions = [
-        [
-            [1, 2, 3, 4, 5, 6],
-            [4, 5, 6, 1, 2, 3],
-            [2, 3, 1, 5, 6, 4],
-            [5, 6, 4, 2, 3, 1],
-            [3, 1, 2, 6, 4, 5],
-            [6, 4, 5, 3, 1, 2]
-        ],
-        [
-            [2, 4, 6, 1, 3, 5],
-            [1, 3, 5, 2, 4, 6],
-            [6, 2, 4, 3, 5, 1],
-            [3, 5, 1, 6, 2, 4],
-            [4, 6, 2, 5, 1, 3],
-            [5, 1, 3, 4, 6, 2]
-        ],
-        [
-            [3, 6, 2, 5, 1, 4],
-            [5, 1, 4, 3, 6, 2],
-            [2, 3, 6, 1, 4, 5],
-            [1, 4, 5, 2, 3, 6],
-            [6, 2, 1, 4, 5, 3],
-            [4, 5, 3, 6, 2, 1]
-        ]
-    ];
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex != 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
 
-    const sudokuStateByDoor = {};
-    let activeSudokuDoor = null;
-    let activeSudokuCellIndex = null;
-    let highlightedDigit = null;
-
-    function seededRandom(seed) {
-        let s = seed % 2147483647;
-        if (s <= 0) s += 2147483646;
-        return function () {
-            s = (s * 16807) % 2147483647;
-            return (s - 1) / 2147483646;
+    function syncCanvasAspectRatio() {
+        const canvas = document.getElementById('advent-canvas');
+        const img = new Image();
+        img.src = 'advent-bg.jpg';
+        img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+                const width = canvas.clientWidth;
+                canvas.style.height = (width * img.naturalHeight / img.naturalWidth) + 'px';
+                generateAdventDoors();
+                centerScrollView();
+            }
         };
     }
 
-    function createSudokuPuzzleForDoor(doorKey) {
-        const keyStr = String(doorKey);
-        let seed = 0;
-        for (let i = 0; i < keyStr.length; i++) {
-            seed = seed * 31 + keyStr.charCodeAt(i);
+    function centerScrollView() {
+        const container = document.getElementById('advent-scroll-container');
+        if (container) {
+            container.scrollLeft = Math.max(0, (container.scrollWidth - container.clientWidth) / 2);
+            container.scrollTop = Math.max(0, (container.scrollHeight - container.clientHeight) / 2);
+            lastScrollX = container.scrollLeft;
+            lastScrollY = container.scrollTop;
         }
-        const rand = seededRandom(seed + 101);
-        const base = baseSudokuSolutions[Math.abs(seed) % baseSudokuSolutions.length];
-
-        // Zahlen 1-6 zufällig permutieren
-        const digits = [1, 2, 3, 4, 5, 6];
-        for (let i = digits.length - 1; i > 0; i--) {
-            const j = Math.floor(rand() * (i + 1));
-            [digits[i], digits[j]] = [digits[j], digits[i]];
-        }
-
-        const solution = base.map(row => row.map(val => digits[val - 1]));
-
-        // Einfaches Sudoku: ca. 18 von 36 Feldern vorgegeben (pro Zeile mindestens 2 Vorgaben)
-        const given = Array.from({ length: 6 }, () => Array(6).fill(false));
-        const puzzle = Array.from({ length: 6 }, () => Array(6).fill(0));
-
-        for (let r = 0; r < 6; r++) {
-            const cols = [0, 1, 2, 3, 4, 5];
-            for (let i = cols.length - 1; i > 0; i--) {
-                const j = Math.floor(rand() * (i + 1));
-                [cols[i], cols[j]] = [cols[j], cols[i]];
-            }
-            for (let k = 0; k < 3; k++) {
-                const c = cols[k];
-                given[r][c] = true;
-                puzzle[r][c] = solution[r][c];
-            }
-        }
-
-        return {
-            solution,
-            given,
-            values: puzzle
-        };
     }
 
-    function getOrCreateSudokuState(doorKey) {
-        if (!sudokuStateByDoor[doorKey]) {
-            sudokuStateByDoor[doorKey] = createSudokuPuzzleForDoor(doorKey);
-        }
-        return sudokuStateByDoor[doorKey];
-    }
+    function generateAdventDoors() {
+        const canvas = document.getElementById('advent-canvas');
+        canvas.innerHTML = '';
 
-    function getConflictingCells(values) {
-        const conflicts = new Set();
+        const doorNumbers = ['Test', 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+        shuffleArray(doorNumbers);
 
-        for (let i = 0; i < 36; i++) {
-            const r = Math.floor(i / 6);
-            const c = i % 6;
-            const v = values[r][c];
-            if (!v) continue;
+        const placedDoors = [];
+        const doorSize = 80;
+        const minDistance = doorSize + 35;
 
-            // Zeile prüfen
-            for (let cc = 0; cc < 6; cc++) {
-                if (cc !== c && values[r][cc] === v) {
-                    conflicts.add(i);
-                    conflicts.add(r * 6 + cc);
-                }
-            }
+        const canvasWidth = canvas.clientWidth;
+        const canvasHeight = canvas.clientHeight;
+        const padding = 20;
 
-            // Spalte prüfen
-            for (let rr = 0; rr < 6; rr++) {
-                if (rr !== r && values[rr][c] === v) {
-                    conflicts.add(i);
-                    conflicts.add(rr * 6 + c);
-                }
-            }
+        doorNumbers.forEach((num) => {
+            let x, y, collision;
+            let attempts = 0;
 
-            // 2x3 Block prüfen
-            const br = Math.floor(r / 2) * 2;
-            const bc = Math.floor(c / 3) * 3;
-            for (let rr = br; rr < br + 2; rr++) {
-                for (let cc = bc; cc < bc + 3; cc++) {
-                    if ((rr !== r || cc !== c) && values[rr][cc] === v) {
-                        conflicts.add(i);
-                        conflicts.add(rr * 6 + cc);
+            do {
+                collision = false;
+                x = Math.random() * Math.max(20, canvasWidth - doorSize - padding * 2) + padding;
+                y = Math.random() * Math.max(20, canvasHeight - doorSize - padding * 2) + padding;
+
+                for (let pos of placedDoors) {
+                    const dx = x - pos.x;
+                    const dy = y - pos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < minDistance) {
+                        collision = true;
+                        break;
                     }
                 }
-            }
-        }
+                attempts++;
+            } while (collision && attempts < 1000);
 
-        return conflicts;
+            placedDoors.push({ x: x, y: y });
+
+            const door = document.createElement('div');
+            door.className = 'advent-door';
+
+            const numSpan = document.createElement('span');
+            numSpan.className = 'advent-door-number';
+            numSpan.innerText = num;
+            door.appendChild(numSpan);
+
+            door.style.left = x + 'px';
+            door.style.top = y + 'px';
+
+            door.onclick = () => openDoorOptions(num);
+            canvas.appendChild(door);
+        });
     }
 
-    function isSudokuSolved(state) {
-        for (let r = 0; r < 6; r++) {
-            for (let c = 0; c < 6; c++) {
-                if (state.values[r][c] !== state.solution[r][c]) {
-                    return false;
-                }
-            }
+    function isDoorUnlocked(num) {
+        if (num === 'Test') return true;
+
+        const now = new Date();
+        const month = now.getMonth(); // 0 = Jan, 10 = Nov, 11 = Dez
+        const day = now.getDate();
+
+        if (num === 29 || num === 30) {
+            if (month === 11) return true;
+            if (month === 10 && day >= num) return true;
+            return false;
         }
-        return true;
+
+        if (typeof num === 'number' && num >= 1 && num <= 24) {
+            if (month === 11 && day >= num) return true;
+            return false;
+        }
+
+        return false;
     }
 
-    function renderSudokuBoard(focusIndex = null) {
-        if (activeSudokuDoor === null) return;
-        const state = getOrCreateSudokuState(activeSudokuDoor);
-        const boardEl = document.getElementById('sudoku-board');
-        const statusEl = document.getElementById('sudoku-status');
-        const conflicts = getConflictingCells(state.values);
+    function openDoorOptions(num) {
+        if (!isDoorUnlocked(num)) {
+            document.getElementById('door-locked-title').innerText = 'Türchen ' + num;
+            document.getElementById('door-locked-modal').classList.add('visible');
+            return;
+        }
 
-        boardEl.innerHTML = '';
+        selectedDoorNumber = num;
+        document.getElementById('door-modal-title').innerText = num === 'Test' ? 'Test-Türchen' : 'Türchen ' + num;
+        const modal = document.getElementById('door-options-modal');
+        modal.classList.add('visible');
+    }
 
-        for (let i = 0; i < 36; i++) {
-            const r = Math.floor(i / 6);
-            const c = i % 6;
-            const val = state.values[r][c];
-            const isGiven = state.given[r][c];
+    function closeLockedModal() {
+        document.getElementById('door-locked-modal').classList.remove('visible');
+    }
 
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.inputMode = 'numeric';
-            input.maxLength = 1;
-            input.className = 'sudoku-cell';
-            if (isGiven) input.classList.add('given');
-            if (c === 2) input.classList.add('block-right');
-            if (r === 1 || r === 3) input.classList.add('block-bottom');
+    function closeDoorModal() {
+        const modal = document.getElementById('door-options-modal');
+        modal.classList.remove('visible');
+    }
 
-            if (activeSudokuCellIndex === i) {
-                input.classList.add('selected');
+    function openDoorContent(type) {
+        closeDoorModal();
+        alert('Hier öffnet sich dann Türchen ' + selectedDoorNumber + ' mit Inhalt: ' + type.toUpperCase());
+    }
+
+    /* REIN WEISSE SCHNEEFLOCKEN & GLITZER */
+    function initSnow3D() {
+        const container = document.getElementById('snow-container');
+        container.innerHTML = '';
+        snowParticles = [];
+
+        const snowIcons = ['❄️', '❅', '❆', '✨', '⭐'];
+        const count = 110;
+
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'snow-particle';
+            el.innerText = snowIcons[Math.floor(Math.random() * snowIcons.length)];
+
+            const z = Math.random() * 800 - 200;
+            const scale = Math.max(0.3, (z + 200) / 800);
+
+            const p = {
+                el: el,
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                z: z,
+                speedX: (Math.random() * 0.4 - 0.2),
+                speedY: (Math.random() * 3.0 + 2.0) * scale,
+                size: Math.floor(Math.random() * 12 + 14) * scale,
+                opacity: Math.random() * 0.8 + 0.2
+            };
+
+            el.style.fontSize = p.size + 'px';
+            el.style.opacity = p.opacity;
+            container.appendChild(el);
+            snowParticles.push(p);
+        }
+    }
+
+    function updateSnow3D() {
+        snowParticles.forEach(p => {
+            const effectiveSpeedY = p.speedY - (scrollVelocityY * 0.2);
+            const effectiveSpeedX = p.speedX - (scrollVelocityX * 0.25);
+
+            p.y += effectiveSpeedY;
+            p.x += effectiveSpeedX;
+
+            if (p.y > window.innerHeight + 20) {
+                p.y = -20;
+                p.x = Math.random() * window.innerWidth;
+            } else if (p.y < -30) {
+                p.y = window.innerHeight + 10;
+                p.x = Math.random() * window.innerWidth;
             }
-            if (highlightedDigit && val === highlightedDigit) {
-                input.classList.add('highlighted');
-            }
-            if (conflicts.has(i)) {
-                input.classList.add('conflict');
+
+            if (p.x > window.innerWidth + 20) {
+                p.x = -20;
+            } else if (p.x < -20) {
+                p.x = window.innerWidth + 20;
             }
 
-            input.value = val ? String(val) : '';
+            p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, ${p.z}px)`;
+        });
 
-            input.addEventListener('focus', () => {
-                activeSudokuCellIndex = i;
-                const currentVal = state.values[r][c];
-                highlightedDigit = currentVal ? currentVal : null
+        scrollVelocityY *= 0.85;
+        scrollVelocityX *= 0.85;
+        snowAnimFrame = requestAnimationFrame(updateSnow3D);
+    }
+
+    const scrollContainer = document.getElementById('advent-scroll-container');
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', () => {
+            const currentY = scrollContainer.scrollTop;
+            const currentX = scrollContainer.scrollLeft;
+
+            scrollVelocityY = currentY - lastScrollY;
+            scrollVelocityX = currentX - lastScrollX;
+
+            lastScrollY = currentY;
+            lastScrollX = currentX;
+        });
+    }
+
+    window.onload = () => {
+        generateAdventDoors();
+        syncCanvasAspectRatio();
+        initSnow3D();
+        updateSnow3D();
+        centerScrollView();
+
+        const adventAudio = document.getElementById('advent-audio');
+        if (adventAudio) {
+            const tryPlayAudio = () => {
+                if (!adventAudio.paused) return;
+                adventAudio.play().then(() => {
+                    document.removeEventListener('pointerdown', tryPlayAudio);
+                    document.removeEventListener('touchstart', tryPlayAudio);
+                    document.removeEventListener('scroll', tryPlayAudio, true);
+                }).catch(() => {});
+            };
+
+            tryPlayAudio();
+            document.addEventListener('pointerdown', tryPlayAudio, { passive: true });
+            document.addEventListener('touchstart', tryPlayAudio, { passive: true });
+            document.addEventListener('scroll', tryPlayAudio, { passive: true, capture: true });
+        }
+    };
+</script>
+</body>
+</html>
