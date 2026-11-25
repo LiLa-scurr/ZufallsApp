@@ -266,14 +266,14 @@
     <audio id="advent-audio" src="advent-music.mp3" loop autoplay playsinline></audio>
 
     <!-- DAUERHAFTER MUSIK-WECHSEL BUTTON OBEN RECHTS -->
-    <button id="btn-music-switch" class="btn-music-switch" onclick="toggleMusicTrack()">🎵 Zu Aschenbrödel</button>
+    <button id="btn-music-switch" class="btn-music-switch" onclick="toggleMusicTrack()">🎵 Zu Ligeirihgbdi</button>
 
     <!-- POPUP FÜR BONUS-ÜBERRASCHUNG -->
     <div id="bonus-modal" class="popup-overlay">
         <div class="popup-content">
             <h2>🎁 Überraschung</h2>
             <p>Da ich weiß, wie gern du diese Advents-Musik magst, kannst du ab heute auch eine andere Musik für den Hintergrund auswählen. 😁 Viel Vergnügen! ❤️</p>
-            <p id="bonus-current-track" class="door-prompt">Aktuell läuft: Adventsmusik</p>
+            <p id="bonus-current-track" class="door-prompt">Aktuell läuft: Linus Musik</p>
             <button class="option-btn" onclick="toggleMusicTrack()">🎶 Jetzt Musik wechseln</button>
             <button onclick="closeBonusModal()" style="margin-top: 12px;">Fertig</button>
         </div>
@@ -283,8 +283,8 @@
     <div id="door-options-modal" class="popup-overlay">
         <div class="popup-content">
             <h2 id="door-modal-title">Türchen</h2>
-            <p class="door-prompt">Entscheide dich heute für eine Möglichkeit.</p>
-            <p style="margin-bottom: 10px;">Was möchtest du heute entdecken?</p>
+            <p class="door-prompt">Nach was ist dir heute?</p>
+            <p style="margin-bottom: 10px;">Du musst dich für eine Sache entscheiden.</p>
             <button class="option-btn" onclick="openDoorContent('spruch')">💬 Toller Spruch</button>
             <button class="option-btn" onclick="openDoorContent('bild')">🖼️ Schönes Bild</button>
             <button class="option-btn" onclick="openDoorContent('sudoku')">🧩 Ein Sudoku</button>
@@ -297,8 +297,8 @@
     <!-- POPUP WENN BEREITS EINE ANDERE MÖGLICHKEIT GEWÄHLT WURDE -->
     <div id="choice-locked-modal" class="popup-overlay">
         <div class="popup-content">
-            <h2>Heute hast du dich schon entschieden</h2>
-            <p id="choice-locked-text">Dafür musst du dich an einem anderen Tag entscheiden.</p>
+            <h2>Heute hast du dich schon entschieden 😬</h2>
+            <p id="choice-locked-text">Morgen kannst du eine andere Auswahl treffen.</p>
             <button onclick="closeChoiceLockedModal()">Okay</button>
         </div>
     </div>
@@ -341,12 +341,12 @@
     const MUSIC_TRACKS = {
         advent: {
             src: 'advent-music.mp3',
-            name: 'Adventsmusik',
+            name: 'Linus Musik',
             switchLabel: '🎵 Zu Lottis Musik'
         },
         aschenbroedel: {
             src: 'aschenbroedel-music.mp3',
-            name: 'Aschenbrödel-Musik',
+            name: 'Lottis Musik',
             switchLabel: '🎵 Zu Linus Musik'
         }
     };
