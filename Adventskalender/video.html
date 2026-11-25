@@ -1,1 +1,246 @@
 
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Lustiges Video</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .video-box {
+            background: rgba(30, 30, 30, 0.94);
+            padding: 24px 20px;
+            border-radius: 20px;
+            max-width: 90vw;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .video-box h2 {
+            margin: 0 0 14px 0;
+            font-size: 21px;
+            color: #feb632;
+        }
+
+        .video-player {
+            width: 100%;
+            max-height: 56vh;
+            border-radius: 14px;
+            background: #000;
+            display: block;
+            margin: 0 auto 14px auto;
+        }
+
+        .short-embed-frame {
+            width: 100%;
+            max-width: 290px;
+            height: 54vh;
+            min-height: 320px;
+            border: none;
+            border-radius: 14px;
+            background: #000;
+            display: block;
+            margin: 0 auto 14px auto;
+        }
+
+        .video-caption {
+            font-size: 15px;
+            line-height: 1.45;
+            color: #eeeeee;
+            margin: 0 0 18px 0;
+        }
+
+        .close-btn {
+            background: #ffffff;
+            color: #1e1e1e;
+            font-size: 15px;
+            padding: 11px 28px;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="video-box">
+        <h2 id="video-title">Lustiges Video</h2>
+        <div id="video-media-slot"></div>
+        <p id="video-caption" class="video-caption"></p>
+        <button class="close-btn" onclick="closeOverlay()">Schließen</button>
+    </div>
+
+    <script>
+        // Beispiele:
+        // Lokales Video (ohne YouTube-Look): { src: 'video1.mp4', caption: 'Text zum Video' }
+        // YouTube Short im Overlay: { youtube: 'https://youtube.com/shorts/VIDEO_ID', caption: 'Text zum Short' }
+        const VIDEOS = [
+            { src: 'video1.mp4', caption: 'Hier kommt dein Text zum Video hin.' },
+            { src: 'video2.mp4', caption: 'Noch ein lustiges Video für Lotti.' }
+        ];
+
+        const USED_STORAGE_KEY = 'lotti_advent_used_videos_v1';
+        const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_videos_v1';
+
+        const params = new URLSearchParams(window.location.search);
+        const doorKey = params.get('door') || 'default';
+
+        if (params.get('door')) {
+            document.getElementById('video-title').innerText =
+                String(doorKey).startsWith('Test') ? 'Video – ' + doorKey + '-Türchen' : 'Video – Türchen ' + doorKey;
+        }
+
+        function setParentMusicDucking(ducked) {
+            if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
+                window.parent.setVideoMusicDucking(ducked);
+            }
+        }
+
+        function extractYouTubeId(item) {
+            if (!item) return '';
+            if (item.youtubeId) return String(item.youtubeId).trim();
+            if (!item.youtube) return '';
+            const match = String(item.youtube).match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
+            return match ? match[1] : '';
+        }
+
+        function loadUsedIndices() {
+            try {
+                const raw = localStorage.getItem(USED_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter(idx => Number.isInteger(idx) && idx >= 0 && idx < VIDEOS.length);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveUsedIndices(indices) {
+            try {
+                localStorage.setItem(USED_STORAGE_KEY, JSON.stringify(indices));
+            } catch (e) {}
+        }
+
+        function loadDoorMap() {
+            try {
+                const raw = localStorage.getItem(DOOR_MAP_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveDoorMap(map) {
+            try {
+                localStorage.setItem(DOOR_MAP_STORAGE_KEY, JSON.stringify(map));
+            } catch (e) {}
+        }
+
+        function getVideoForDoor(door) {
+            if (!VIDEOS.length) {
+                return { src: '', caption: 'Noch keine Videos in VIDEOS hinterlegt.' };
+            }
+
+            const doorMap = loadDoorMap();
+            if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
+                const savedIndex = doorMap[door];
+                if (Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < VIDEOS.length) {
+                    return VIDEOS[savedIndex];
+                }
+            }
+
+            let used = loadUsedIndices();
+            if (used.length >= VIDEOS.length) {
+                used = [];
+            }
+
+            const remaining = [];
+            for (let i = 0; i < VIDEOS.length; i++) {
+                if (!used.includes(i)) {
+                    remaining.push(i);
+                }
+            }
+
+            const chosenIndex = remaining[Math.floor(Math.random() * remaining.length)];
+            used.push(chosenIndex);
+            saveUsedIndices(used);
+
+            doorMap[door] = chosenIndex;
+            saveDoorMap(doorMap);
+
+            return VIDEOS[chosenIndex];
+        }
+
+        function renderMedia(item) {
+            const slot = document.getElementById('video-media-slot');
+            slot.innerHTML = '';
+
+            if (item && item.src) {
+                const videoEl = document.createElement('video');
+                videoEl.id = 'video-player';
+                videoEl.className = 'video-player';
+                videoEl.controls = true;
+                videoEl.playsinline = true;
+                videoEl.preload = 'metadata';
+                videoEl.src = item.src;
+
+                videoEl.addEventListener('play', () => setParentMusicDucking(true));
+                videoEl.addEventListener('pause', () => setParentMusicDucking(false));
+                videoEl.addEventListener('ended', () => setParentMusicDucking(false));
+
+                slot.appendChild(videoEl);
+                return;
+            }
+
+            const ytId = extractYouTubeId(item);
+            if (ytId) {
+                const iframe = document.createElement('iframe');
+                iframe.className = 'short-embed-frame';
+                iframe.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(ytId) + '?playsinline=1&rel=0';
+                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                iframe.allowFullscreen = true;
+                slot.appendChild(iframe);
+                setParentMusicDucking(true);
+            }
+        }
+
+        function closeOverlay() {
+            const videoEl = document.getElementById('video-player');
+            if (videoEl) {
+                videoEl.pause();
+                videoEl.removeAttribute('src');
+                videoEl.load();
+            }
+            setParentMusicDucking(false);
+
+            if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
+                window.parent.closeContentOverlay();
+            } else if (window.parent && typeof window.parent.closeSudokuOverlay === 'function') {
+                window.parent.closeSudokuOverlay();
+            }
+        }
+
+        const item = getVideoForDoor(doorKey);
+        renderMedia(item);
+        document.getElementById('video-caption').innerText = item.caption || '';
+    </script>
+</body>
+</html>
