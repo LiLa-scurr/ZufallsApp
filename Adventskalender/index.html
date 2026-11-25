@@ -266,7 +266,7 @@
     <audio id="advent-audio" src="advent-music.mp3" loop autoplay playsinline></audio>
 
     <!-- DAUERHAFTER MUSIK-WECHSEL BUTTON OBEN RECHTS -->
-    <button id="btn-music-switch" class="btn-music-switch" onclick="toggleMusicTrack()">🎵 Zu Ligeirihgbdi</button>
+    <button id="btn-music-switch" class="btn-music-switch" onclick="toggleMusicTrack()">🎵 Zu Lottis Musik</button>
 
     <!-- POPUP FÜR BONUS-ÜBERRASCHUNG -->
     <div id="bonus-modal" class="popup-overlay">
@@ -662,7 +662,7 @@
         if (alreadyChosenType && alreadyChosenType !== type) {
             const chosenName = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
             document.getElementById('choice-locked-text').innerText =
-                'Du hast dich hier schon für „' + chosenName + '“ entschieden. Dafür musst du dich an einem anderen Tag entscheiden.';
+                'Du hast dich heute schon für „' + chosenName + '“ entschieden. Morgen kannst du eine andere Auswahl treffen.'; 
             document.getElementById('choice-locked-modal').classList.add('visible');
             return;
         }
