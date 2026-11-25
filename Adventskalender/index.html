@@ -271,8 +271,8 @@
     <!-- POPUP FÜR BONUS-ÜBERRASCHUNG -->
     <div id="bonus-modal" class="popup-overlay">
         <div class="popup-content">
-            <h2>🎁 Bonus-Überraschung</h2>
-            <p>Du hast eine kleine Extra-Überraschung freigeschaltet! Ab sofort kannst du oben rechts jederzeit zwischen zwei Melodien wechseln:</p>
+            <h2>🎁 Überraschung</h2>
+            <p>Da ich weiß, wie gern du diese Advents-Musik magst, kannst du ab heute auch eine andere Musik für den Hintergrund auswählen. 😁 Viel Vergnügen! ❤️</p>
             <p id="bonus-current-track" class="door-prompt">Aktuell läuft: Adventsmusik</p>
             <button class="option-btn" onclick="toggleMusicTrack()">🎶 Jetzt Musik wechseln</button>
             <button onclick="closeBonusModal()" style="margin-top: 12px;">Fertig</button>
@@ -285,11 +285,11 @@
             <h2 id="door-modal-title">Türchen</h2>
             <p class="door-prompt">Entscheide dich heute für eine Möglichkeit.</p>
             <p style="margin-bottom: 10px;">Was möchtest du heute entdecken?</p>
-            <button class="option-btn" onclick="openDoorContent('spruch')">💬 Ein Spruch</button>
-            <button class="option-btn" onclick="openDoorContent('bild')">🖼️ Ein Bild</button>
+            <button class="option-btn" onclick="openDoorContent('spruch')">💬 Toller Spruch</button>
+            <button class="option-btn" onclick="openDoorContent('bild')">🖼️ Schönes Bild</button>
             <button class="option-btn" onclick="openDoorContent('sudoku')">🧩 Ein Sudoku</button>
-            <button class="option-btn" onclick="openDoorContent('video')">🎬 Ein Video</button>
-            <button id="door-bonus-btn" class="bonus-option-btn" onclick="openBonusFromDoor()">🎁 Bonus-Überraschung</button>
+            <button class="option-btn" onclick="openDoorContent('video')">🎬 Lustiges Video</button>
+            <button id="door-bonus-btn" class="bonus-option-btn" onclick="openBonusFromDoor()">🎁 Überraschung</button>
             <button onclick="closeDoorModal()" style="background: #545456; color: white; margin-top: 15px;">Abbrechen</button>
         </div>
     </div>
@@ -297,7 +297,7 @@
     <!-- POPUP WENN BEREITS EINE ANDERE MÖGLICHKEIT GEWÄHLT WURDE -->
     <div id="choice-locked-modal" class="popup-overlay">
         <div class="popup-content">
-            <h2>Schon entschieden</h2>
+            <h2>Heute hast du dich schon entschieden</h2>
             <p id="choice-locked-text">Dafür musst du dich an einem anderen Tag entscheiden.</p>
             <button onclick="closeChoiceLockedModal()">Okay</button>
         </div>
@@ -342,12 +342,12 @@
         advent: {
             src: 'advent-music.mp3',
             name: 'Adventsmusik',
-            switchLabel: '🎵 Zu Aschenbrödel'
+            switchLabel: '🎵 Zu Lottis Musik'
         },
         aschenbroedel: {
             src: 'aschenbroedel-music.mp3',
             name: 'Aschenbrödel-Musik',
-            switchLabel: '🎵 Zu Adventsmusik'
+            switchLabel: '🎵 Zu Linus Musik'
         }
     };
 
@@ -359,10 +359,10 @@
     };
 
     const optionLabelsByType = {
-        spruch: 'Ein Spruch',
-        bild: 'Ein Bild',
+        spruch: 'Toller Spruch',
+        bild: 'Schönes Bild',
         sudoku: 'Ein Sudoku',
-        video: 'Ein Video'
+        video: 'Lustiges Video'
     };
 
     function isBonusAvailable() {
