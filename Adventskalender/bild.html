@@ -1,1 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Schönes Bild</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
 
+        .bild-box {
+            background: rgba(30, 30, 30, 0.94);
+            padding: 24px 20px;
+            border-radius: 20px;
+            max-width: 90vw;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .bild-box h2 {
+            margin: 0 0 14px 0;
+            font-size: 21px;
+            color: #feb632;
+        }
+
+        .bild-frame {
+            width: 100%;
+            max-height: 55vh;
+            object-fit: contain;
+            border-radius: 14px;
+            background: rgba(0, 0, 0, 0.35);
+            display: block;
+            margin: 0 auto 14px auto;
+        }
+
+        .bild-caption {
+            font-size: 15px;
+            line-height: 1.45;
+            color: #eeeeee;
+            margin: 0 0 18px 0;
+        }
+
+        .close-btn {
+            background: #ffffff;
+            color: #1e1e1e;
+            font-size: 15px;
+            padding: 11px 28px;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="bild-box">
+        <h2 id="bild-title">Schönes Bild</h2>
+        <img id="bild-img" class="bild-frame" src="" alt="Adventsbild">
+        <p id="bild-caption" class="bild-caption"></p>
+        <button class="close-btn" onclick="closeOverlay()">Schließen</button>
+    </div>
+
+    <script>
+        // Hier deine Bilder eintragen: { src: '...', caption: '...' }
+        const BILDER = [
+            { src: 'bild1.jpg', caption: 'Hier kommt deine Bildunterschrift hin.' },
+            { src: 'bild2.jpg', caption: 'Noch ein schönes Bild für Lotti.' }
+        ];
+
+        const USED_STORAGE_KEY = 'lotti_advent_used_bilder_v1';
+        const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_bilder_v1';
+
+        const params = new URLSearchParams(window.location.search);
+        const doorKey = params.get('door') || 'default';
+
+        if (params.get('door')) {
+            document.getElementById('bild-title').innerText =
+                String(doorKey).startsWith('Test') ? 'Bild – ' + doorKey + '-Türchen' : 'Bild – Türchen ' + doorKey;
+        }
+
+        function loadUsedIndices() {
+            try {
+                const raw = localStorage.getItem(USED_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter(idx => Number.isInteger(idx) && idx >= 0 && idx < BILDER.length);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveUsedIndices(indices) {
+            try {
+                localStorage.setItem(USED_STORAGE_KEY, JSON.stringify(indices));
+            } catch (e) {}
+        }
+
+        function loadDoorMap() {
+            try {
+                const raw = localStorage.getItem(DOOR_MAP_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveDoorMap(map) {
+            try {
+                localStorage.setItem(DOOR_MAP_STORAGE_KEY, JSON.stringify(map));
+            } catch (e) {}
+        }
+
+        function getBildForDoor(door) {
+            if (!BILDER.length) {
+                return { src: '', caption: 'Noch keine Bilder in BILDER hinterlegt.' };
+            }
+
+            const doorMap = loadDoorMap();
+            if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
+                const savedIndex = doorMap[door];
+                if (Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < BILDER.length) {
+                    return BILDER[savedIndex];
+                }
+            }
+
+            let used = loadUsedIndices();
+            if (used.length >= BILDER.length) {
+                used = [];
+            }
+
+            const remaining = [];
+            for (let i = 0; i < BILDER.length; i++) {
+                if (!used.includes(i)) {
+                    remaining.push(i);
+                }
+            }
+
+            const chosenIndex = remaining[Math.floor(Math.random() * remaining.length)];
+            used.push(chosenIndex);
+            saveUsedIndices(used);
+
+            doorMap[door] = chosenIndex;
+            saveDoorMap(doorMap);
+
+            return BILDER[chosenIndex];
+        }
+
+        function closeOverlay() {
+            const videoEl = document.querySelector('video');
+            if (videoEl) videoEl.pause();
+
+            if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
+                window.parent.closeContentOverlay();
+            } else if (window.parent && typeof window.parent.closeSudokuOverlay === 'function') {
+                window.parent.closeSudokuOverlay();
+            }
+        }
+
+        const item = getBildForDoor(doorKey);
+        const imgEl = document.getElementById('bild-img');
+        if (item.src) {
+            imgEl.src = item.src;
+        } else {
+            imgEl.style.display = 'none';
+        }
+        document.getElementById('bild-caption').innerText = item.caption || '';
+    </script>
+</body>
+</html>
