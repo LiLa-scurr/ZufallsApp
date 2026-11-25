@@ -365,6 +365,12 @@
         video: 'Lustiges Video'
     };
 
+    function setVideoMusicDucking(ducked) {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+        audio.volume = ducked ? 0.15 : 1.0;
+    }
+
     function isBonusAvailable() {
         const now = new Date();
         // Ab 1. Dezember verfügbar (Monat 11 = Dezember)
@@ -662,7 +668,7 @@
         if (alreadyChosenType && alreadyChosenType !== type) {
             const chosenName = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
             document.getElementById('choice-locked-text').innerText =
-                'Du hast dich heute schon für „' + chosenName + '“ entschieden. Morgen kannst du eine andere Auswahl treffen.'; 
+                'Du hast dich heute schon für „' + chosenName + '“ entschieden. Morgen kannst du eine andere Auswahl treffen.';
             document.getElementById('choice-locked-modal').classList.add('visible');
             return;
         }
@@ -676,12 +682,14 @@
             return;
         }
 
+        setVideoMusicDucking(type === 'video');
         const overlay = document.getElementById('content-overlay');
         overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey) + '"></iframe>';
         overlay.classList.add('visible');
     }
 
     function closeContentOverlay() {
+        setVideoMusicDucking(false);
         const overlay = document.getElementById('content-overlay');
         overlay.classList.remove('visible');
         overlay.innerHTML = '';
