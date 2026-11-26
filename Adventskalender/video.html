@@ -236,7 +236,9 @@
                 iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
                 iframe.allowFullscreen = true;
                 slot.appendChild(iframe);
-                setParentMusicFade(true);
+
+                // Musik erst ausblenden, wenn auf den Video-Bereich getippt wird
+                slot.addEventListener('pointerdown', () => setParentMusicFade(true), { once: true });
             }
         }
 
