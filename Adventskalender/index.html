@@ -333,8 +333,8 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
-    let musicFadeTimer = null;
-    let musicWasPlayingBeforeVideo = false;
+    let musicFadeAnimFrame = null;
+    let musicFadedForVideo = false;
     let awaitingResumeTap = false;
 
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
@@ -379,64 +379,73 @@
         }).catch(() => {});
     }
 
+    function fadeAudioVolumeTo(targetVolume, durationMs = 450, onComplete) {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+
+        if (musicFadeAnimFrame) {
+            cancelAnimationFrame(musicFadeAnimFrame);
+            musicFadeAnimFrame = null;
+        }
+
+        const clampedTarget = Math.max(0, Math.min(1, targetVolume));
+        const startVolume = typeof audio.volume === 'number' ? audio.volume : 1;
+
+        if (Math.abs(startVolume - clampedTarget) < 0.01) {
+            try { audio.volume = clampedTarget; } catch (e) {}
+            if (typeof onComplete === 'function') onComplete();
+            return;
+        }
+
+        const startTime = performance.now();
+
+        function step(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / Math.max(1, durationMs));
+            const eased = progress * progress * (3 - 2 * progress);
+            const nextVol = startVolume + (clampedTarget - startVolume) * eased;
+
+            try { audio.volume = nextVol; } catch (e) {}
+
+            if (progress < 1) {
+                musicFadeAnimFrame = requestAnimationFrame(step);
+            } else {
+                musicFadeAnimFrame = null;
+                try { audio.volume = clampedTarget; } catch (e) {}
+                if (typeof onComplete === 'function') onComplete();
+            }
+        }
+
+        musicFadeAnimFrame = requestAnimationFrame(step);
+    }
+
     function setVideoMusicFade(fadeOut) {
         const audio = document.getElementById('advent-audio');
         if (!audio) return;
 
-        if (musicFadeTimer) {
-            clearInterval(musicFadeTimer);
-            musicFadeTimer = null;
-        }
-
         if (fadeOut) {
-            musicWasPlayingBeforeVideo = !audio.paused;
+            if (audio.paused || musicFadedForVideo) return;
+            musicFadedForVideo = true;
             awaitingResumeTap = false;
-            if (!musicWasPlayingBeforeVideo) return;
-
-            const startVol = typeof audio.volume === 'number' ? audio.volume : 1;
-            const steps = 8;
-            const stepMs = 45;
-            let currentStep = 0;
-
-            musicFadeTimer = setInterval(() => {
-                currentStep++;
-                const nextVol = Math.max(0, startVol * (1 - currentStep / steps));
-                try { audio.volume = nextVol; } catch (e) {}
-
-                if (currentStep >= steps) {
-                    clearInterval(musicFadeTimer);
-                    musicFadeTimer = null;
-                    audio.pause();
-                    try { audio.volume = 1; } catch (e) {}
-                }
-            }, stepMs);
+            fadeAudioVolumeTo(0, 450);
         } else {
-            if (!musicWasPlayingBeforeVideo) return;
-            musicWasPlayingBeforeVideo = false;
+            if (!musicFadedForVideo) return;
+            musicFadedForVideo = false;
 
-            try { audio.volume = 0; } catch (e) {}
-            audio.play().then(() => {
-                awaitingResumeTap = false;
-                const steps = 8;
-                const stepMs = 50;
-                let currentStep = 0;
-
-                musicFadeTimer = setInterval(() => {
-                    currentStep++;
-                    const nextVol = Math.min(1, currentStep / steps);
-                    try { audio.volume = nextVol; } catch (e) {}
-
-                    if (currentStep >= steps) {
-                        clearInterval(musicFadeTimer);
-                        musicFadeTimer = null;
-                    }
-                }, stepMs);
-            }).catch(() => {
-                try { audio.volume = 1; } catch (e) {}
-                awaitingResumeTap = true;
-                document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
-                document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
-            });
+            if (audio.paused) {
+                try { audio.volume = 0; } catch (e) {}
+                audio.play().then(() => {
+                    awaitingResumeTap = false;
+                    fadeAudioVolumeTo(1, 500);
+                }).catch(() => {
+                    try { audio.volume = 1; } catch (e) {}
+                    awaitingResumeTap = true;
+                    document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
+                    document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
+                });
+            } else {
+                fadeAudioVolumeTo(1, 500);
+            }
         }
     }
 
@@ -751,7 +760,6 @@
             return;
         }
 
-        setVideoMusicFade(type === 'video');
         const overlay = document.getElementById('content-overlay');
         overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey) + '"></iframe>';
         overlay.classList.add('visible');
