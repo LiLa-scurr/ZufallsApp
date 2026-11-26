@@ -81,7 +81,7 @@
         <h2 id="video-title">Lustiges Video</h2>
         <div id="video-media-slot"></div>
         <p id="video-caption" class="video-caption"></p>
-        <button class="close-btn" onclick="closeOverlay()">Schließen</button>
+        <button type="button" class="close-btn" onclick="closeOverlay()">Schließen</button>
     </div>
 
     <script>
@@ -237,7 +237,6 @@
                 iframe.allowFullscreen = true;
                 slot.appendChild(iframe);
 
-                // Musik erst ausblenden, wenn auf den Video-Bereich getippt wird
                 slot.addEventListener('pointerdown', () => setParentMusicFade(true), { once: true });
             }
         }
@@ -249,6 +248,12 @@
                 videoEl.removeAttribute('src');
                 videoEl.load();
             }
+
+            const mediaSlot = document.getElementById('video-media-slot');
+            if (mediaSlot) {
+                mediaSlot.innerHTML = '';
+            }
+
             setParentMusicFade(false);
 
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
