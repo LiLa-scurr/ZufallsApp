@@ -335,6 +335,7 @@
 
     let musicFadeAnimFrame = null;
     let musicFadedForVideo = false;
+    let musicShouldResumeAfterVideo = false;
     let awaitingResumeTap = false;
 
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
@@ -369,13 +370,31 @@
         video: 'Lustiges Video'
     };
 
+    function armResumeTapListener() {
+        awaitingResumeTap = true;
+        document.removeEventListener('pointerdown', resumeAudioOnUserTap);
+        document.removeEventListener('touchstart', resumeAudioOnUserTap);
+        document.removeEventListener('click', resumeAudioOnUserTap);
+        document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
+        document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
+        document.addEventListener('click', resumeAudioOnUserTap, { passive: true });
+    }
+
+    function clearResumeTapListener() {
+        awaitingResumeTap = false;
+        document.removeEventListener('pointerdown', resumeAudioOnUserTap);
+        document.removeEventListener('touchstart', resumeAudioOnUserTap);
+        document.removeEventListener('click', resumeAudioOnUserTap);
+    }
+
     function resumeAudioOnUserTap() {
         const audio = document.getElementById('advent-audio');
-        if (!audio || !awaitingResumeTap) return;
+        if (!audio) return;
+        try {
+            if (audio.volume < 0.2) audio.volume = 1;
+        } catch (e) {}
         audio.play().then(() => {
-            awaitingResumeTap = false;
-            document.removeEventListener('pointerdown', resumeAudioOnUserTap);
-            document.removeEventListener('touchstart', resumeAudioOnUserTap);
+            clearResumeTapListener();
         }).catch(() => {});
     }
 
@@ -424,24 +443,39 @@
         if (!audio) return;
 
         if (fadeOut) {
-            if (audio.paused || musicFadedForVideo) return;
+            if (musicFadedForVideo) return;
+            const wasRunning = !audio.paused;
             musicFadedForVideo = true;
-            awaitingResumeTap = false;
-            fadeAudioVolumeTo(0, 450);
+            musicShouldResumeAfterVideo = wasRunning;
+            clearResumeTapListener();
+
+            if (!wasRunning) return;
+
+            fadeAudioVolumeTo(0, 450, () => {
+                if (musicFadedForVideo) {
+                    try { audio.pause(); } catch (e) {}
+                }
+            });
         } else {
             if (!musicFadedForVideo) return;
+            const shouldResume = musicShouldResumeAfterVideo;
             musicFadedForVideo = false;
+            musicShouldResumeAfterVideo = false;
 
-            if (audio.paused) {
-                try { audio.volume = 0; } catch (e) {}
-                audio.play().then(() => {
-                    awaitingResumeTap = false;
+            if (!shouldResume) {
+                try { audio.volume = 1; } catch (e) {}
+                return;
+            }
+
+            try { audio.volume = 0; } catch (e) {}
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.then(() => {
+                    clearResumeTapListener();
                     fadeAudioVolumeTo(1, 500);
                 }).catch(() => {
                     try { audio.volume = 1; } catch (e) {}
-                    awaitingResumeTap = true;
-                    document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
-                    document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
+                    armResumeTapListener();
                 });
             } else {
                 fadeAudioVolumeTo(1, 500);
@@ -766,10 +800,10 @@
     }
 
     function closeContentOverlay() {
-        setVideoMusicFade(false);
         const overlay = document.getElementById('content-overlay');
         overlay.classList.remove('visible');
         overlay.innerHTML = '';
+        setVideoMusicFade(false);
     }
 
     // Alias falls sudoku.html closeSudokuOverlay() aufruft
