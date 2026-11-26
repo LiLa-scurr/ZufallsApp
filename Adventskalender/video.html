@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -122,9 +121,11 @@
                 String(doorKey).startsWith('Test') ? 'Video – ' + doorKey + '-Türchen' : 'Video – Türchen ' + doorKey;
         }
 
-        function setParentMusicDucking(ducked) {
-            if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
-                window.parent.setVideoMusicDucking(ducked);
+        function setParentMusicFade(fadeOut) {
+            if (window.parent && typeof window.parent.setVideoMusicFade === 'function') {
+                window.parent.setVideoMusicFade(fadeOut);
+            } else if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
+                window.parent.setVideoMusicDucking(fadeOut);
             }
         }
 
@@ -215,13 +216,13 @@
                 videoEl.id = 'video-player';
                 videoEl.className = 'video-player';
                 videoEl.controls = true;
-                videoEl.playsinline = true;
+                videoEl.playsInline = true;
                 videoEl.preload = 'metadata';
                 videoEl.src = item.src;
 
-                videoEl.addEventListener('play', () => setParentMusicDucking(true));
-                videoEl.addEventListener('pause', () => setParentMusicDucking(false));
-                videoEl.addEventListener('ended', () => setParentMusicDucking(false));
+                videoEl.addEventListener('play', () => setParentMusicFade(true));
+                videoEl.addEventListener('pause', () => setParentMusicFade(false));
+                videoEl.addEventListener('ended', () => setParentMusicFade(false));
 
                 slot.appendChild(videoEl);
                 return;
@@ -235,7 +236,7 @@
                 iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
                 iframe.allowFullscreen = true;
                 slot.appendChild(iframe);
-                setParentMusicDucking(true);
+                setParentMusicFade(true);
             }
         }
 
@@ -246,7 +247,7 @@
                 videoEl.removeAttribute('src');
                 videoEl.load();
             }
-            setParentMusicDucking(false);
+            setParentMusicFade(false);
 
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
                 window.parent.closeContentOverlay();
