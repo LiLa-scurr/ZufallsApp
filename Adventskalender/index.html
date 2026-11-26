@@ -333,6 +333,10 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
+    let musicFadeTimer = null;
+    let musicWasPlayingBeforeVideo = false;
+    let awaitingResumeTap = false;
+
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
     const BONUS_ACTIVATED_STORAGE_KEY = 'lotti_advent_bonus_music_unlocked_v1';
     const MUSIC_TRACK_STORAGE_KEY = 'lotti_advent_selected_music_v1';
@@ -365,10 +369,75 @@
         video: 'Lustiges Video'
     };
 
-    function setVideoMusicDucking(ducked) {
+    function resumeAudioOnUserTap() {
+        const audio = document.getElementById('advent-audio');
+        if (!audio || !awaitingResumeTap) return;
+        audio.play().then(() => {
+            awaitingResumeTap = false;
+            document.removeEventListener('pointerdown', resumeAudioOnUserTap);
+            document.removeEventListener('touchstart', resumeAudioOnUserTap);
+        }).catch(() => {});
+    }
+
+    function setVideoMusicFade(fadeOut) {
         const audio = document.getElementById('advent-audio');
         if (!audio) return;
-        audio.volume = ducked ? 0.15 : 1.0;
+
+        if (musicFadeTimer) {
+            clearInterval(musicFadeTimer);
+            musicFadeTimer = null;
+        }
+
+        if (fadeOut) {
+            musicWasPlayingBeforeVideo = !audio.paused;
+            awaitingResumeTap = false;
+            if (!musicWasPlayingBeforeVideo) return;
+
+            const startVol = typeof audio.volume === 'number' ? audio.volume : 1;
+            const steps = 8;
+            const stepMs = 45;
+            let currentStep = 0;
+
+            musicFadeTimer = setInterval(() => {
+                currentStep++;
+                const nextVol = Math.max(0, startVol * (1 - currentStep / steps));
+                try { audio.volume = nextVol; } catch (e) {}
+
+                if (currentStep >= steps) {
+                    clearInterval(musicFadeTimer);
+                    musicFadeTimer = null;
+                    audio.pause();
+                    try { audio.volume = 1; } catch (e) {}
+                }
+            }, stepMs);
+        } else {
+            if (!musicWasPlayingBeforeVideo) return;
+            musicWasPlayingBeforeVideo = false;
+
+            try { audio.volume = 0; } catch (e) {}
+            audio.play().then(() => {
+                awaitingResumeTap = false;
+                const steps = 8;
+                const stepMs = 50;
+                let currentStep = 0;
+
+                musicFadeTimer = setInterval(() => {
+                    currentStep++;
+                    const nextVol = Math.min(1, currentStep / steps);
+                    try { audio.volume = nextVol; } catch (e) {}
+
+                    if (currentStep >= steps) {
+                        clearInterval(musicFadeTimer);
+                        musicFadeTimer = null;
+                    }
+                }, stepMs);
+            }).catch(() => {
+                try { audio.volume = 1; } catch (e) {}
+                awaitingResumeTap = true;
+                document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
+                document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
+            });
+        }
     }
 
     function isBonusAvailable() {
@@ -682,14 +751,14 @@
             return;
         }
 
-        setVideoMusicDucking(type === 'video');
+        setVideoMusicFade(type === 'video');
         const overlay = document.getElementById('content-overlay');
         overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey) + '"></iframe>';
         overlay.classList.add('visible');
     }
 
     function closeContentOverlay() {
-        setVideoMusicDucking(false);
+        setVideoMusicFade(false);
         const overlay = document.getElementById('content-overlay');
         overlay.classList.remove('visible');
         overlay.innerHTML = '';
