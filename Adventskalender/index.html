@@ -333,8 +333,7 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
-    let musicFadeAnimFrame = null;
-    let musicFadedForVideo = false;
+    let musicPausedForVideo = false;
     let musicShouldResumeAfterVideo = false;
     let awaitingResumeTap = false;
 
@@ -374,111 +373,51 @@
         awaitingResumeTap = true;
         document.removeEventListener('pointerdown', resumeAudioOnUserTap);
         document.removeEventListener('touchstart', resumeAudioOnUserTap);
-        document.removeEventListener('click', resumeAudioOnUserTap);
         document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
         document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
-        document.addEventListener('click', resumeAudioOnUserTap, { passive: true });
     }
 
     function clearResumeTapListener() {
         awaitingResumeTap = false;
         document.removeEventListener('pointerdown', resumeAudioOnUserTap);
         document.removeEventListener('touchstart', resumeAudioOnUserTap);
-        document.removeEventListener('click', resumeAudioOnUserTap);
     }
 
     function resumeAudioOnUserTap() {
         const audio = document.getElementById('advent-audio');
-        if (!audio) return;
-        try {
-            if (audio.volume < 0.2) audio.volume = 1;
-        } catch (e) {}
+        if (!audio || !awaitingResumeTap) return;
+        try { audio.volume = 1; } catch (e) {}
         audio.play().then(() => {
             clearResumeTapListener();
         }).catch(() => {});
     }
 
-    function fadeAudioVolumeTo(targetVolume, durationMs = 450, onComplete) {
+    function setVideoMusicPaused(pausedForVideo) {
         const audio = document.getElementById('advent-audio');
         if (!audio) return;
 
-        if (musicFadeAnimFrame) {
-            cancelAnimationFrame(musicFadeAnimFrame);
-            musicFadeAnimFrame = null;
-        }
-
-        const clampedTarget = Math.max(0, Math.min(1, targetVolume));
-        const startVolume = typeof audio.volume === 'number' ? audio.volume : 1;
-
-        if (Math.abs(startVolume - clampedTarget) < 0.01) {
-            try { audio.volume = clampedTarget; } catch (e) {}
-            if (typeof onComplete === 'function') onComplete();
-            return;
-        }
-
-        const startTime = performance.now();
-
-        function step(now) {
-            const elapsed = now - startTime;
-            const progress = Math.min(1, elapsed / Math.max(1, durationMs));
-            const eased = progress * progress * (3 - 2 * progress);
-            const nextVol = startVolume + (clampedTarget - startVolume) * eased;
-
-            try { audio.volume = nextVol; } catch (e) {}
-
-            if (progress < 1) {
-                musicFadeAnimFrame = requestAnimationFrame(step);
-            } else {
-                musicFadeAnimFrame = null;
-                try { audio.volume = clampedTarget; } catch (e) {}
-                if (typeof onComplete === 'function') onComplete();
-            }
-        }
-
-        musicFadeAnimFrame = requestAnimationFrame(step);
-    }
-
-    function setVideoMusicFade(fadeOut) {
-        const audio = document.getElementById('advent-audio');
-        if (!audio) return;
-
-        if (fadeOut) {
-            if (musicFadedForVideo) return;
-            const wasRunning = !audio.paused;
-            musicFadedForVideo = true;
-            musicShouldResumeAfterVideo = wasRunning;
+        if (pausedForVideo) {
+            if (musicPausedForVideo) return;
+            musicShouldResumeAfterVideo = !audio.paused;
+            musicPausedForVideo = true;
             clearResumeTapListener();
-
-            if (!wasRunning) return;
-
-            fadeAudioVolumeTo(0, 450, () => {
-                if (musicFadedForVideo) {
-                    try { audio.pause(); } catch (e) {}
-                }
-            });
+            try { audio.pause(); } catch (e) {}
         } else {
-            if (!musicFadedForVideo) return;
+            if (!musicPausedForVideo) return;
             const shouldResume = musicShouldResumeAfterVideo;
-            musicFadedForVideo = false;
+            musicPausedForVideo = false;
             musicShouldResumeAfterVideo = false;
+            try { audio.volume = 1; } catch (e) {}
 
-            if (!shouldResume) {
-                try { audio.volume = 1; } catch (e) {}
-                return;
-            }
+            if (!shouldResume) return;
 
-            try { audio.volume = 0; } catch (e) {}
             const playPromise = audio.play();
             if (playPromise && typeof playPromise.then === 'function') {
                 playPromise.then(() => {
                     clearResumeTapListener();
-                    fadeAudioVolumeTo(1, 500);
                 }).catch(() => {
-                    try { audio.volume = 1; } catch (e) {}
                     armResumeTapListener();
                 });
-            } else {
-                fadeAudioVolumeTo(1, 500);
             }
         }
     }
@@ -803,7 +742,7 @@
         const overlay = document.getElementById('content-overlay');
         overlay.classList.remove('visible');
         overlay.innerHTML = '';
-        setVideoMusicFade(false);
+        setVideoMusicPaused(false);
     }
 
     // Alias falls sudoku.html closeSudokuOverlay() aufruft
