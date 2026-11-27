@@ -118,6 +118,13 @@
             outline-offset: -2px;
         }
 
+        /* Hebt alle Felder mit derselben Zahl hervor. */
+        .cell.same-number {
+            background: rgba(255, 193, 7, 0.38);
+            color: #fff1bd;
+            box-shadow: inset 0 0 0 2px rgba(255, 213, 126, 0.8);
+        }
+
         .cell.error {
             background: rgba(239, 83, 80, 0.32);
             color: #ff8a80;
@@ -427,6 +434,9 @@
             const data = ensureModeData(currentModeKey);
             const gridEl = document.getElementById('sudoku-grid');
 
+            // Wert der aktuell ausgewählten Zelle ermitteln.
+            const selectedValue = selectedIndex === null ? 0 : data.current[selectedIndex];
+
             gridEl.className = 'sudoku-grid ' + (cfg.size === 6 ? 'grid-6' : 'grid-9');
             gridEl.innerHTML = '';
 
@@ -451,9 +461,15 @@
                     cell.classList.add('selected');
                 }
 
+                // Alle gleichen Zahlen markieren – auch vorgegebene Zahlen.
+                if (selectedValue !== 0 && curVal === selectedValue) {
+                    cell.classList.add('same-number');
+                }
+
                 if ((col + 1) % cfg.boxCols === 0 && col + 1 < cfg.size) {
                     cell.classList.add('box-right');
                 }
+
                 if ((row + 1) % cfg.boxRows === 0 && row + 1 < cfg.size) {
                     cell.classList.add('box-bottom');
                 }
@@ -474,6 +490,7 @@
             }
 
             const data = ensureModeData(currentModeKey);
+
             if (data.puzzle[selectedIndex] !== 0) {
                 document.getElementById('status-text').innerText = 'Vorgegebene Zahlen lassen sich nicht ändern.';
                 return;
@@ -495,15 +512,18 @@
 
             for (let idx = 0; idx < cfg.size * cfg.size; idx++) {
                 const val = data.current[idx];
+
                 if (val === 0) {
                     hasEmpty = true;
                     continue;
                 }
+
                 const row = Math.floor(idx / cfg.size);
                 const col = idx % cfg.size;
 
                 const temp = data.current.slice();
                 temp[idx] = 0;
+
                 if (!isValidPlacement(temp, cfg.size, cfg.boxRows, cfg.boxCols, row, col, val)) {
                     hasError = true;
                     if (cells[idx]) cells[idx].classList.add('error');
@@ -511,6 +531,7 @@
             }
 
             const statusEl = document.getElementById('status-text');
+
             if (hasError) {
                 statusEl.innerText = 'Rot markierte Zahlen doppeln sich in Zeile, Spalte oder Block.';
             } else if (hasEmpty) {
@@ -522,6 +543,7 @@
 
         function closeOverlay() {
             saveState();
+
             if (window.parent && typeof window.parent.closeSudokuOverlay === 'function') {
                 window.parent.closeSudokuOverlay();
             } else if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
@@ -531,12 +553,15 @@
 
         (function init() {
             const saved = loadSavedState();
+
             if (saved.modes && typeof saved.modes === 'object') {
                 stateByMode = saved.modes;
             }
+
             if (saved.activeMode && MODES[saved.activeMode]) {
                 currentModeKey = saved.activeMode;
             }
+
             ensureModeData(currentModeKey);
             updateModeButtons();
             renderNumpad();
