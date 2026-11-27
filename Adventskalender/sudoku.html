@@ -123,7 +123,7 @@
             color: #ff8a80;
         }
 
-        /* Block-Trennlinien für 6x6 (3x2 Blöcke) */
+        /* Block-Trennlinien für 6x6 (2x3 Blöcke) */
         .grid-6 .cell.box-right {
             border-right: 2px solid #ffd57e;
         }
@@ -219,7 +219,7 @@
 
         <div class="actions-row">
             <button type="button" class="action-btn" onclick="checkBoard()">Prüfen</button>
-            <button type="button" class="action-btn" onclick="resetCurrentMode()">Neu</button>
+            <button type="button" class="action-btn" onclick="resetCurrentMode()">Neu starten</button>
             <button type="button" class="close-btn" onclick="closeOverlay()">Schließen</button>
         </div>
     </div>
@@ -246,7 +246,7 @@
 
         const params = new URLSearchParams(window.location.search);
         const doorKey = params.get('door') || 'default';
-        const STORAGE_KEY = 'lotti_advent_sudoku_v2_' + doorKey;
+        const STORAGE_KEY = 'lotti_advent_sudoku_v3_' + doorKey;
 
         if (params.get('door')) {
             document.getElementById('sudoku-title').innerText =
@@ -366,6 +366,7 @@
 
             const generated = createPuzzle(cfg);
             stateByMode[modeKey] = generated;
+            saveState();
             return generated;
         }
 
@@ -382,14 +383,16 @@
                 'Modus „' + MODES[modeKey].label + '“ (' + MODES[modeKey].size + '×' + MODES[modeKey].size + ') aktiv.';
         }
 
+        // Startet dasselbe Sudoku neu (löscht nur eigene Einträge, erstellt kein neues Rätsel)
         function resetCurrentMode() {
             const cfg = MODES[currentModeKey];
-            stateByMode[currentModeKey] = createPuzzle(cfg);
+            const data = ensureModeData(currentModeKey);
+            data.current = data.puzzle.slice();
             selectedIndex = null;
             saveState();
             renderGrid();
             document.getElementById('status-text').innerText =
-                'Neues ' + cfg.label + '-Sudoku erstellt.';
+                cfg.label + '-Sudoku wurde zurückgesetzt – gleiches Rätsel wie zuvor.';
         }
 
         function updateModeButtons() {
