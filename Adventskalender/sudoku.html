@@ -19,315 +19,526 @@
         }
 
         .sudoku-box {
-            background: rgba(30, 30, 30, 0.92);
+            background: rgba(30, 30, 30, 0.95);
             padding: 22px 18px;
             border-radius: 20px;
-            max-width: 92vw;
-            width: 370px;
+            max-width: 94vw;
+            width: 430px;
+            max-height: 92vh;
+            overflow-y: auto;
             text-align: center;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.65);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.75);
             border: 1px solid rgba(255, 255, 255, 0.12);
+            box-sizing: border-box;
         }
 
         .sudoku-box h2 {
-            margin: 0 0 8px 0;
-            font-size: 22px;
-            color: #feb632;
-        }
-
-        .sudoku-sub {
-            font-size: 13px;
-            color: #cccccc;
-            margin: 0 0 12px 0;
-            line-height: 1.4;
-        }
-
-        .sudoku-board {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 3px;
-            background: #556b82;
-            padding: 4px;
-            border-radius: 12px;
-            margin: 0 auto 14px auto;
-            max-width: 320px;
-        }
-
-        .sudoku-cell {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            border: none;
-            border-radius: 6px;
-            background: #1f2933;
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 800;
-            text-align: center;
-            padding: 0;
-            box-sizing: border-box;
-            outline: none;
-            caret-color: #feb632;
-        }
-
-        .sudoku-cell.given {
-            background: #2e3b4e;
-            color: #f8f9fa;
-            cursor: pointer;
-        }
-
-        .sudoku-cell:not(.given) {
-            color: #7dd3fc;
-        }
-
-        .sudoku-cell.block-right { margin-right: 4px; }
-        .sudoku-cell.block-bottom { margin-bottom: 4px; }
-
-        .sudoku-cell.selected {
-            box-shadow: inset 0 0 0 2px #feb632;
-            background: #334155;
-        }
-
-        .sudoku-cell.highlighted {
-            background: #feb632 !important;
-            color: #111827 !important;
-        }
-
-        .sudoku-cell.conflict {
-            background: #991b1b !important;
-            color: #fecaca !important;
-        }
-
-        .sudoku-status {
-            min-height: 22px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #feb632;
             margin: 0 0 10px 0;
+            font-size: 21px;
+            color: #feb632;
         }
 
-        .sudoku-actions {
+        .mode-switch {
             display: flex;
-            gap: 10px;
             justify-content: center;
+            gap: 10px;
+            margin-bottom: 14px;
         }
 
-        .sudoku-actions button {
-            background: #ffffff;
-            color: #1e1e1e;
+        .mode-btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: #2c3e50;
+            color: #ffffff;
             font-size: 14px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 30px;
             font-weight: bold;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: #feb632;
+            color: #1e1e1e;
+            border-color: #feb632;
+        }
+
+        .sudoku-grid {
+            display: grid;
+            margin: 0 auto 12px auto;
+            border: 2px solid #ffd57e;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #1b222c;
+            user-select: none;
+        }
+
+        .sudoku-grid.grid-6 {
+            grid-template-columns: repeat(6, 1fr);
+            width: min(82vw, 312px);
+            height: min(82vw, 312px);
+        }
+
+        .sudoku-grid.grid-9 {
+            grid-template-columns: repeat(9, 1fr);
+            width: min(86vw, 360px);
+            height: min(86vw, 360px);
+        }
+
+        .cell {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            box-sizing: border-box;
+            background: transparent;
+            color: #ffffff;
+            transition: background 0.15s ease;
+        }
+
+        .grid-6 .cell {
+            font-size: 18px;
+        }
+
+        .grid-9 .cell {
+            font-size: 15px;
+        }
+
+        .cell.given {
+            color: #ffd57e;
+            background: rgba(255, 213, 126, 0.08);
+            cursor: default;
+        }
+
+        .cell.selected {
+            background: rgba(79, 195, 247, 0.28);
+            outline: 2px solid #4fc3f7;
+            outline-offset: -2px;
+        }
+
+        .cell.error {
+            background: rgba(239, 83, 80, 0.32);
+            color: #ff8a80;
+        }
+
+        /* Block-Trennlinien für 6x6 (3x2 Blöcke) */
+        .grid-6 .cell.box-right {
+            border-right: 2px solid #ffd57e;
+        }
+
+        .grid-6 .cell.box-bottom {
+            border-bottom: 2px solid #ffd57e;
+        }
+
+        /* Block-Trennlinien für 9x9 (3x3 Blöcke) */
+        .grid-9 .cell.box-right {
+            border-right: 2px solid #ffd57e;
+        }
+
+        .grid-9 .cell.box-bottom {
+            border-bottom: 2px solid #ffd57e;
+        }
+
+        .numpad {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .num-btn {
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #263238;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .num-btn:active {
+            transform: scale(0.94);
+        }
+
+        .status-text {
+            min-height: 22px;
+            font-size: 14px;
+            color: #ffd57e;
+            margin-bottom: 12px;
+        }
+
+        .actions-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #2c3e50;
+            color: white;
+            font-size: 14px;
+            padding: 10px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn {
+            background: #ffffff;
+            color: #1e1e1e;
+            font-size: 15px;
+            padding: 10px 26px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
 <body>
     <div class="sudoku-box">
         <h2 id="sudoku-title">Sudoku</h2>
-        <p class="sudoku-sub">Zahlen 1–6 pro Zeile, Spalte &amp; 2×3-Block. Tippe auf eine Zahl zum Hervorheben.</p>
-        <div id="sudoku-board" class="sudoku-board"></div>
-        <p id="sudoku-status" class="sudoku-status"></p>
-        <div class="sudoku-actions">
-            <button onclick="resetSudoku()" style="background: #334155; color: white;">Neu starten</button>
-            <button onclick="closeOverlay()">Schließen</button>
+
+        <div class="mode-switch" role="group" aria-label="Länge wählen">
+            <button type="button" id="btn-mode-short" class="mode-btn active" onclick="setMode('short')">Kurz (6×6)</button>
+            <button type="button" id="btn-mode-long" class="mode-btn" onclick="setMode('long')">Lang (9×9)</button>
+        </div>
+
+        <div id="sudoku-grid" class="sudoku-grid grid-6"></div>
+        <div id="numpad" class="numpad"></div>
+        <div id="status-text" class="status-text">Wähle ein Feld und eine Zahl.</div>
+
+        <div class="actions-row">
+            <button type="button" class="action-btn" onclick="checkBoard()">Prüfen</button>
+            <button type="button" class="action-btn" onclick="resetCurrentMode()">Neu</button>
+            <button type="button" class="close-btn" onclick="closeOverlay()">Schließen</button>
         </div>
     </div>
 
     <script>
+        const MODES = {
+            short: {
+                key: 'short',
+                label: 'Kurz',
+                size: 6,
+                boxRows: 2,
+                boxCols: 3,
+                removeCount: 16
+            },
+            long: {
+                key: 'long',
+                label: 'Lang',
+                size: 9,
+                boxRows: 3,
+                boxCols: 3,
+                removeCount: 42
+            }
+        };
+
         const params = new URLSearchParams(window.location.search);
-        const doorKey = params.get('door') || '1';
-        const storageKey = 'lotti_advent_sudoku_v1_' + doorKey;
+        const doorKey = params.get('door') || 'default';
+        const STORAGE_KEY = 'lotti_advent_sudoku_v2_' + doorKey;
 
-        document.getElementById('sudoku-title').innerText =
-            doorKey === 'Test' ? 'Sudoku – Test-Türchen' : 'Sudoku – Türchen ' + doorKey;
-
-        const baseSolutions = [
-            [
-                [1, 2, 3, 4, 5, 6],
-                [4, 5, 6, 1, 2, 3],
-                [2, 3, 1, 5, 6, 4],
-                [5, 6, 4, 2, 3, 1],
-                [3, 1, 2, 6, 4, 5],
-                [6, 4, 5, 3, 1, 2]
-            ],
-            [
-                [2, 4, 6, 1, 3, 5],
-                [1, 3, 5, 2, 4, 6],
-                [6, 2, 4, 3, 5, 1],
-                [3, 5, 1, 6, 2, 4],
-                [4, 6, 2, 5, 1, 3],
-                [5, 1, 3, 4, 6, 2]
-            ]
-        ];
-
-        let activeIndex = null;
-        let highlightedDigit = null;
-
-        function seededRandom(seed) {
-            let s = seed % 2147483647;
-            if (s <= 0) s += 2147483646;
-            return () => {
-                s = (s * 16807) % 2147483647;
-                return (s - 1) / 2147483646;
-            };
+        if (params.get('door')) {
+            document.getElementById('sudoku-title').innerText =
+                String(doorKey).startsWith('Test') ? 'Sudoku – ' + doorKey + '-Türchen' : 'Sudoku – Türchen ' + doorKey;
         }
 
-        function createPuzzle() {
-            let seed = 0;
-            for (let i = 0; i < doorKey.length; i++) seed = seed * 31 + doorKey.charCodeAt(i);
-            const rand = seededRandom(seed + 101);
-            const base = baseSolutions[Math.abs(seed) % baseSolutions.length];
+        let currentModeKey = 'short';
+        let selectedIndex = null;
+        let stateByMode = {};
 
-            const digits = [1, 2, 3, 4, 5, 6];
-            for (let i = digits.length - 1; i > 0; i--) {
-                const j = Math.floor(rand() * (i + 1));
-                [digits[i], digits[j]] = [digits[j], digits[i]];
+        function shuffle(arr) {
+            const copy = arr.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function isValidPlacement(grid, size, boxRows, boxCols, row, col, num) {
+            for (let i = 0; i < size; i++) {
+                if (grid[row * size + i] === num) return false;
+                if (grid[i * size + col] === num) return false;
             }
 
-            const solution = base.map(row => row.map(v => digits[v - 1]));
-            const given = Array.from({ length: 6 }, () => Array(6).fill(false));
-            const values = Array.from({ length: 6 }, () => Array(6).fill(0));
+            const startRow = Math.floor(row / boxRows) * boxRows;
+            const startCol = Math.floor(col / boxCols) * boxCols;
 
-            for (let r = 0; r < 6; r++) {
-                const cols = [0, 1, 2, 3, 4, 5];
-                for (let i = cols.length - 1; i > 0; i--) {
-                    const j = Math.floor(rand() * (i + 1));
-                    [cols[i], cols[j]] = [cols[j], cols[i]];
-                }
-                for (let k = 0; k < 3; k++) {
-                    const c = cols[k];
-                    given[r][c] = true;
-                    values[r][c] = solution[r][c];
+            for (let r = startRow; r < startRow + boxRows; r++) {
+                for (let c = startCol; c < startCol + boxCols; c++) {
+                    if (grid[r * size + c] === num) return false;
                 }
             }
-            return { solution, given, values };
-        }
 
-        function loadState() {
-            try {
-                const raw = localStorage.getItem(storageKey);
-                if (raw) return JSON.parse(raw);
-            } catch (e) {}
-            const fresh = createPuzzle();
-            saveState(fresh);
-            return fresh;
-        }
-
-        function saveState(st) {
-            try { localStorage.setItem(storageKey, JSON.stringify(st)); } catch (e) {}
-        }
-
-        let state = loadState();
-
-        function getConflicts(values) {
-            const conflicts = new Set();
-            for (let i = 0; i < 36; i++) {
-                const r = Math.floor(i / 6), c = i % 6, v = values[r][c];
-                if (!v) continue;
-                for (let cc = 0; cc < 6; cc++) if (cc !== c && values[r][cc] === v) { conflicts.add(i); conflicts.add(r * 6 + cc); }
-                for (let rr = 0; rr < 6; rr++) if (rr !== r && values[rr][c] === v) { conflicts.add(i); conflicts.add(rr * 6 + c); }
-                const br = Math.floor(r / 2) * 2, bc = Math.floor(c / 3) * 3;
-                for (let rr = br; rr < br + 2; rr++) {
-                    for (let cc = bc; cc < bc + 3; cc++) {
-                        if ((rr !== r || cc !== c) && values[rr][cc] === v) { conflicts.add(i); conflicts.add(rr * 6 + cc); }
-                    }
-                }
-            }
-            return conflicts;
-        }
-
-        function isSolved() {
-            for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) if (state.values[r][c] !== state.solution[r][c]) return false;
             return true;
         }
 
-        function render(focusIndex = null) {
-            const board = document.getElementById('sudoku-board');
-            const status = document.getElementById('sudoku-status');
-            const conflicts = getConflicts(state.values);
-            board.innerHTML = '';
+        function fillGrid(grid, size, boxRows, boxCols, pos = 0) {
+            const total = size * size;
+            if (pos === total) return true;
 
-            for (let i = 0; i < 36; i++) {
-                const r = Math.floor(i / 6), c = i % 6;
-                const val = state.values[r][c], isGiven = state.given[r][c];
+            const row = Math.floor(pos / size);
+            const col = pos % size;
 
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.inputMode = 'numeric';
-                input.maxLength = 1;
-                input.className = 'sudoku-cell';
-                if (isGiven) input.classList.add('given');
-                if (c === 2) input.classList.add('block-right');
-                if (r === 1 || r === 3) input.classList.add('block-bottom');
-                if (activeIndex === i) input.classList.add('selected');
-                if (highlightedDigit && val === highlightedDigit) input.classList.add('highlighted');
-                if (conflicts.has(i)) input.classList.add('conflict');
-                input.value = val ? String(val) : '';
-
-                input.addEventListener('click', () => {
-                    activeIndex = i;
-                    const cur = state.values[r][c];
-                    highlightedDigit = cur ? (highlightedDigit === cur ? null : cur) : null;
-                    render(isGiven ? null : i);
-                });
-
-                input.addEventListener('beforeinput', (e) => {
-                    if (isGiven || (e.data && !/^[1-6]$/.test(e.data))) e.preventDefault();
-                });
-
-                input.addEventListener('input', () => {
-                    if (isGiven) { input.value = val ? String(val) : ''; return; }
-                    const raw = input.value.replace(/[^1-6]/g, '');
-                    const digit = raw ? parseInt(raw.slice(-1), 10) : 0;
-                    state.values[r][c] = digit;
-                    activeIndex = i;
-                    highlightedDigit = digit || null;
-                    saveState(state);
-                    render(i);
-                });
-
-                input.addEventListener('keydown', (e) => {
-                    if (!isGiven && (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0')) {
-                        e.preventDefault();
-                        state.values[r][c] = 0;
-                        highlightedDigit = null;
-                        saveState(state);
-                        render(i);
-                    }
-                });
-
-                board.appendChild(input);
+            if (grid[pos] !== 0) {
+                return fillGrid(grid, size, boxRows, boxCols, pos + 1);
             }
 
-            if (isSolved()) status.innerText = 'Super gemacht! Das Sudoku ist gelöst!';
-            else if (conflicts.size > 0) status.innerText = 'Rot markierte Zahlen doppeln sich.';
-            else if (highlightedDigit) status.innerText = 'Alle ' + highlightedDigit + 'en sind hervorgehoben.';
-            else status.innerText = '';
+            const nums = shuffle(Array.from({ length: size }, (_, idx) => idx + 1));
+            for (const num of nums) {
+                if (isValidPlacement(grid, size, boxRows, boxCols, row, col, num)) {
+                    grid[pos] = num;
+                    if (fillGrid(grid, size, boxRows, boxCols, pos + 1)) {
+                        return true;
+                    }
+                    grid[pos] = 0;
+                }
+            }
 
-            if (focusIndex !== null && board.children[focusIndex]) {
-                const target = board.children[focusIndex];
-                target.focus({ preventScroll: true });
-                if (target.setSelectionRange && target.value) target.setSelectionRange(1, 1);
+            return false;
+        }
+
+        function createPuzzle(modeCfg) {
+            const total = modeCfg.size * modeCfg.size;
+            const solution = new Array(total).fill(0);
+            fillGrid(solution, modeCfg.size, modeCfg.boxRows, modeCfg.boxCols);
+
+            const puzzle = solution.slice();
+            const indices = shuffle(Array.from({ length: total }, (_, idx) => idx));
+            const toRemove = Math.min(modeCfg.removeCount, total - modeCfg.size * 2);
+
+            for (let i = 0; i < toRemove; i++) {
+                puzzle[indices[i]] = 0;
+            }
+
+            return {
+                puzzle: puzzle,
+                current: puzzle.slice(),
+                solution: solution
+            };
+        }
+
+        function loadSavedState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return (parsed && typeof parsed === 'object') ? parsed : {};
+            } catch (e) {
+                return {};
             }
         }
 
-        function resetSudoku() {
-            state = createPuzzle();
-            saveState(state);
-            activeIndex = null;
-            highlightedDigit = null;
-            render();
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    activeMode: currentModeKey,
+                    modes: stateByMode
+                }));
+            } catch (e) {}
+        }
+
+        function ensureModeData(modeKey) {
+            const cfg = MODES[modeKey];
+            const existing = stateByMode[modeKey];
+            const expectedLen = cfg.size * cfg.size;
+
+            if (
+                existing &&
+                Array.isArray(existing.puzzle) &&
+                existing.puzzle.length === expectedLen &&
+                Array.isArray(existing.current) &&
+                existing.current.length === expectedLen
+            ) {
+                return existing;
+            }
+
+            const generated = createPuzzle(cfg);
+            stateByMode[modeKey] = generated;
+            return generated;
+        }
+
+        function setMode(modeKey) {
+            if (!MODES[modeKey]) return;
+            currentModeKey = modeKey;
+            selectedIndex = null;
+            ensureModeData(modeKey);
+            saveState();
+            updateModeButtons();
+            renderNumpad();
+            renderGrid();
+            document.getElementById('status-text').innerText =
+                'Modus „' + MODES[modeKey].label + '“ (' + MODES[modeKey].size + '×' + MODES[modeKey].size + ') aktiv.';
+        }
+
+        function resetCurrentMode() {
+            const cfg = MODES[currentModeKey];
+            stateByMode[currentModeKey] = createPuzzle(cfg);
+            selectedIndex = null;
+            saveState();
+            renderGrid();
+            document.getElementById('status-text').innerText =
+                'Neues ' + cfg.label + '-Sudoku erstellt.';
+        }
+
+        function updateModeButtons() {
+            document.getElementById('btn-mode-short').classList.toggle('active', currentModeKey === 'short');
+            document.getElementById('btn-mode-long').classList.toggle('active', currentModeKey === 'long');
+        }
+
+        function renderNumpad() {
+            const cfg = MODES[currentModeKey];
+            const pad = document.getElementById('numpad');
+            pad.innerHTML = '';
+
+            for (let n = 1; n <= cfg.size; n++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'num-btn';
+                btn.innerText = String(n);
+                btn.onclick = () => placeNumber(n);
+                pad.appendChild(btn);
+            }
+
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'num-btn';
+            clearBtn.innerText = '⌫';
+            clearBtn.onclick = () => placeNumber(0);
+            pad.appendChild(clearBtn);
+        }
+
+        function renderGrid() {
+            const cfg = MODES[currentModeKey];
+            const data = ensureModeData(currentModeKey);
+            const gridEl = document.getElementById('sudoku-grid');
+
+            gridEl.className = 'sudoku-grid ' + (cfg.size === 6 ? 'grid-6' : 'grid-9');
+            gridEl.innerHTML = '';
+
+            for (let idx = 0; idx < cfg.size * cfg.size; idx++) {
+                const row = Math.floor(idx / cfg.size);
+                const col = idx % cfg.size;
+                const givenVal = data.puzzle[idx];
+                const curVal = data.current[idx];
+
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = String(idx);
+
+                if (givenVal !== 0) {
+                    cell.classList.add('given');
+                    cell.innerText = String(givenVal);
+                } else if (curVal !== 0) {
+                    cell.innerText = String(curVal);
+                }
+
+                if (idx === selectedIndex) {
+                    cell.classList.add('selected');
+                }
+
+                if ((col + 1) % cfg.boxCols === 0 && col + 1 < cfg.size) {
+                    cell.classList.add('box-right');
+                }
+                if ((row + 1) % cfg.boxRows === 0 && row + 1 < cfg.size) {
+                    cell.classList.add('box-bottom');
+                }
+
+                cell.onclick = () => {
+                    selectedIndex = idx;
+                    renderGrid();
+                };
+
+                gridEl.appendChild(cell);
+            }
+        }
+
+        function placeNumber(val) {
+            if (selectedIndex === null) {
+                document.getElementById('status-text').innerText = 'Bitte zuerst ein Feld antippen.';
+                return;
+            }
+
+            const data = ensureModeData(currentModeKey);
+            if (data.puzzle[selectedIndex] !== 0) {
+                document.getElementById('status-text').innerText = 'Vorgegebene Zahlen lassen sich nicht ändern.';
+                return;
+            }
+
+            data.current[selectedIndex] = val;
+            saveState();
+            renderGrid();
+        }
+
+        function checkBoard() {
+            const cfg = MODES[currentModeKey];
+            const data = ensureModeData(currentModeKey);
+            const cells = document.querySelectorAll('#sudoku-grid .cell');
+            cells.forEach(c => c.classList.remove('error'));
+
+            let hasError = false;
+            let hasEmpty = false;
+
+            for (let idx = 0; idx < cfg.size * cfg.size; idx++) {
+                const val = data.current[idx];
+                if (val === 0) {
+                    hasEmpty = true;
+                    continue;
+                }
+                const row = Math.floor(idx / cfg.size);
+                const col = idx % cfg.size;
+
+                const temp = data.current.slice();
+                temp[idx] = 0;
+                if (!isValidPlacement(temp, cfg.size, cfg.boxRows, cfg.boxCols, row, col, val)) {
+                    hasError = true;
+                    if (cells[idx]) cells[idx].classList.add('error');
+                }
+            }
+
+            const statusEl = document.getElementById('status-text');
+            if (hasError) {
+                statusEl.innerText = 'Rot markierte Zahlen doppeln sich in Zeile, Spalte oder Block.';
+            } else if (hasEmpty) {
+                statusEl.innerText = 'Bisher alles fehlerfrei – es sind noch Felder offen.';
+            } else {
+                statusEl.innerText = 'Geschafft! Das ' + cfg.label + '-Sudoku ist vollständig gelöst.';
+            }
         }
 
         function closeOverlay() {
+            saveState();
             if (window.parent && typeof window.parent.closeSudokuOverlay === 'function') {
                 window.parent.closeSudokuOverlay();
+            } else if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
+                window.parent.closeContentOverlay();
             }
         }
 
-        render();
+        (function init() {
+            const saved = loadSavedState();
+            if (saved.modes && typeof saved.modes === 'object') {
+                stateByMode = saved.modes;
+            }
+            if (saved.activeMode && MODES[saved.activeMode]) {
+                currentModeKey = saved.activeMode;
+            }
+            ensureModeData(currentModeKey);
+            updateModeButtons();
+            renderNumpad();
+            renderGrid();
+        })();
     </script>
 </body>
 </html>
