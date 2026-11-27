@@ -81,7 +81,7 @@
         <h2 id="video-title">Lustiges Video</h2>
         <div id="video-media-slot"></div>
         <p id="video-caption" class="video-caption"></p>
-        <button type="button" class="close-btn" onclick="closeOverlay()">Schließen</button>
+        <button class="close-btn" onclick="closeOverlay()">Schließen</button>
     </div>
 
     <script>
@@ -121,11 +121,11 @@
                 String(doorKey).startsWith('Test') ? 'Video – ' + doorKey + '-Türchen' : 'Video – Türchen ' + doorKey;
         }
 
-        function setParentMusicPaused(pausedForVideo) {
-            if (window.parent && typeof window.parent.setVideoMusicPaused === 'function') {
-                window.parent.setVideoMusicPaused(pausedForVideo);
+        function setParentMusicDucking(ducked) {
+            if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
+                window.parent.setVideoMusicDucking(ducked);
             } else if (window.parent && typeof window.parent.setVideoMusicFade === 'function') {
-                window.parent.setVideoMusicFade(pausedForVideo);
+                window.parent.setVideoMusicFade(ducked);
             }
         }
 
@@ -220,9 +220,9 @@
                 videoEl.preload = 'metadata';
                 videoEl.src = item.src;
 
-                videoEl.addEventListener('play', () => setParentMusicPaused(true));
-                videoEl.addEventListener('pause', () => setParentMusicPaused(false));
-                videoEl.addEventListener('ended', () => setParentMusicPaused(false));
+                videoEl.addEventListener('play', () => setParentMusicDucking(true));
+                videoEl.addEventListener('pause', () => setParentMusicDucking(false));
+                videoEl.addEventListener('ended', () => setParentMusicDucking(false));
 
                 slot.appendChild(videoEl);
                 return;
@@ -237,7 +237,7 @@
                 iframe.allowFullscreen = true;
                 slot.appendChild(iframe);
 
-                slot.addEventListener('pointerdown', () => setParentMusicPaused(true), { once: true });
+                slot.addEventListener('pointerdown', () => setParentMusicDucking(true), { once: true });
             }
         }
 
@@ -248,13 +248,7 @@
                 videoEl.removeAttribute('src');
                 videoEl.load();
             }
-
-            const mediaSlot = document.getElementById('video-media-slot');
-            if (mediaSlot) {
-                mediaSlot.innerHTML = '';
-            }
-
-            setParentMusicPaused(false);
+            setParentMusicDucking(false);
 
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
                 window.parent.closeContentOverlay();
