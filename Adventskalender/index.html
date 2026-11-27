@@ -365,12 +365,6 @@
         video: 'Lustiges Video'
     };
 
-    function setVideoMusicDucking(ducked) {
-        const audio = document.getElementById('advent-audio');
-        if (!audio) return;
-        audio.volume = ducked ? 0.15 : 1.0;
-    }
-
     function isBonusAvailable() {
         const now = new Date();
         // Ab 1. Dezember verfügbar (Monat 11 = Dezember)
@@ -687,13 +681,6 @@
         overlay.classList.add('visible');
     }
 
-    function closeContentOverlay() {
-        setVideoMusicDucking(false);
-        const overlay = document.getElementById('content-overlay');
-        overlay.classList.remove('visible');
-        overlay.innerHTML = '';
-    }
-
     // Alias falls sudoku.html closeSudokuOverlay() aufruft
     function closeSudokuOverlay() {
         closeContentOverlay();
@@ -778,31 +765,37 @@
         });
     }
 
-    window.onload = () => {
-        generateAdventDoors();
-        syncCanvasAspectRatio();
-        initSnow3D();
-        updateSnow3D();
-        centerScrollView();
+    let pendingMusicResume = false;
 
-        applyMusicTrack(getSelectedTrackKey(), false);
+    function resumeAdventAudioNow() {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+        try { audio.volume = 1.0; } catch (e) {}
 
-        const adventAudio = document.getElementById('advent-audio');
-        if (adventAudio) {
-            const tryPlayAudio = () => {
-                if (!adventAudio.paused) return;
-                adventAudio.play().then(() => {
-                    document.removeEventListener('pointerdown', tryPlayAudio);
-                    document.removeEventListener('touchstart', tryPlayAudio);
-                    document.removeEventListener('scroll', tryPlayAudio, true);
-                }).catch(() => {});
-            };
-
-            tryPlayAudio();
-            document.addEventListener('pointerdown', tryPlayAudio, { passive: true });
-            document.addEventListener('touchstart', tryPlayAudio, { passive: true });
-            document.addEventListener('scroll', tryPlayAudio, { passive: true, capture: true });
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.then(() => {
+                pendingMusicResume = false;
+            }).catch(() => {
+                pendingMusicResume = true;
+            });
+        } else {
+            pendingMusicResume = false;
         }
+    }
+
+    function setVideoMusicDucking(ducked) {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+
+        if (ducked) {
+            audio.volume = 0.15;
+        } else {
+            audio.volume = 1.0;
+            pendingMusicResume = true;
+            resumeAdventAudioNow();
+        }
+    }
     };
 </script>
 </body>
