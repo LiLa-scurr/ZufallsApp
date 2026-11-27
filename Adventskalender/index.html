@@ -333,10 +333,6 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
-    let musicPausedForVideo = false;
-    let musicShouldResumeAfterVideo = false;
-    let awaitingResumeTap = false;
-
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
     const BONUS_ACTIVATED_STORAGE_KEY = 'lotti_advent_bonus_music_unlocked_v1';
     const MUSIC_TRACK_STORAGE_KEY = 'lotti_advent_selected_music_v1';
@@ -369,57 +365,10 @@
         video: 'Lustiges Video'
     };
 
-    function armResumeTapListener() {
-        awaitingResumeTap = true;
-        document.removeEventListener('pointerdown', resumeAudioOnUserTap);
-        document.removeEventListener('touchstart', resumeAudioOnUserTap);
-        document.addEventListener('pointerdown', resumeAudioOnUserTap, { passive: true });
-        document.addEventListener('touchstart', resumeAudioOnUserTap, { passive: true });
-    }
-
-    function clearResumeTapListener() {
-        awaitingResumeTap = false;
-        document.removeEventListener('pointerdown', resumeAudioOnUserTap);
-        document.removeEventListener('touchstart', resumeAudioOnUserTap);
-    }
-
-    function resumeAudioOnUserTap() {
-        const audio = document.getElementById('advent-audio');
-        if (!audio || !awaitingResumeTap) return;
-        try { audio.volume = 1; } catch (e) {}
-        audio.play().then(() => {
-            clearResumeTapListener();
-        }).catch(() => {});
-    }
-
-    function setVideoMusicPaused(pausedForVideo) {
+    function setVideoMusicDucking(ducked) {
         const audio = document.getElementById('advent-audio');
         if (!audio) return;
-
-        if (pausedForVideo) {
-            if (musicPausedForVideo) return;
-            musicShouldResumeAfterVideo = !audio.paused;
-            musicPausedForVideo = true;
-            clearResumeTapListener();
-            try { audio.pause(); } catch (e) {}
-        } else {
-            if (!musicPausedForVideo) return;
-            const shouldResume = musicShouldResumeAfterVideo;
-            musicPausedForVideo = false;
-            musicShouldResumeAfterVideo = false;
-            try { audio.volume = 1; } catch (e) {}
-
-            if (!shouldResume) return;
-
-            const playPromise = audio.play();
-            if (playPromise && typeof playPromise.then === 'function') {
-                playPromise.then(() => {
-                    clearResumeTapListener();
-                }).catch(() => {
-                    armResumeTapListener();
-                });
-            }
-        }
+        audio.volume = ducked ? 0.15 : 1.0;
     }
 
     function isBonusAvailable() {
@@ -739,10 +688,10 @@
     }
 
     function closeContentOverlay() {
+        setVideoMusicDucking(false);
         const overlay = document.getElementById('content-overlay');
         overlay.classList.remove('visible');
         overlay.innerHTML = '';
-        setVideoMusicPaused(false);
     }
 
     // Alias falls sudoku.html closeSudokuOverlay() aufruft
