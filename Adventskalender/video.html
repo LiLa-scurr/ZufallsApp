@@ -121,11 +121,11 @@
                 String(doorKey).startsWith('Test') ? 'Video – ' + doorKey + '-Türchen' : 'Video – Türchen ' + doorKey;
         }
 
-        function setParentMusicFade(fadeOut) {
-            if (window.parent && typeof window.parent.setVideoMusicFade === 'function') {
-                window.parent.setVideoMusicFade(fadeOut);
-            } else if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
-                window.parent.setVideoMusicDucking(fadeOut);
+        function setParentMusicPaused(pausedForVideo) {
+            if (window.parent && typeof window.parent.setVideoMusicPaused === 'function') {
+                window.parent.setVideoMusicPaused(pausedForVideo);
+            } else if (window.parent && typeof window.parent.setVideoMusicFade === 'function') {
+                window.parent.setVideoMusicFade(pausedForVideo);
             }
         }
 
@@ -220,9 +220,9 @@
                 videoEl.preload = 'metadata';
                 videoEl.src = item.src;
 
-                videoEl.addEventListener('play', () => setParentMusicFade(true));
-                videoEl.addEventListener('pause', () => setParentMusicFade(false));
-                videoEl.addEventListener('ended', () => setParentMusicFade(false));
+                videoEl.addEventListener('play', () => setParentMusicPaused(true));
+                videoEl.addEventListener('pause', () => setParentMusicPaused(false));
+                videoEl.addEventListener('ended', () => setParentMusicPaused(false));
 
                 slot.appendChild(videoEl);
                 return;
@@ -237,7 +237,7 @@
                 iframe.allowFullscreen = true;
                 slot.appendChild(iframe);
 
-                slot.addEventListener('pointerdown', () => setParentMusicFade(true), { once: true });
+                slot.addEventListener('pointerdown', () => setParentMusicPaused(true), { once: true });
             }
         }
 
@@ -254,7 +254,7 @@
                 mediaSlot.innerHTML = '';
             }
 
-            setParentMusicFade(false);
+            setParentMusicPaused(false);
 
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
                 window.parent.closeContentOverlay();
