@@ -333,6 +333,8 @@
     let scrollVelocityX = 0;
     let scrollVelocityY = 0;
 
+    let pendingMusicResume = false;
+
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
     const BONUS_ACTIVATED_STORAGE_KEY = 'lotti_advent_bonus_music_unlocked_v1';
     const MUSIC_TRACK_STORAGE_KEY = 'lotti_advent_selected_music_v1';
@@ -364,6 +366,36 @@
         sudoku: 'Ein Sudoku',
         video: 'Lustiges Video'
     };
+
+    function resumeAdventAudioNow() {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+        try { audio.volume = 1.0; } catch (e) {}
+
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.then(() => {
+                pendingMusicResume = false;
+            }).catch(() => {
+                pendingMusicResume = true;
+            });
+        } else {
+            pendingMusicResume = false;
+        }
+    }
+
+    function setVideoMusicDucking(ducked) {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+
+        if (ducked) {
+            audio.volume = 0.15;
+        } else {
+            audio.volume = 1.0;
+            pendingMusicResume = true;
+            resumeAdventAudioNow();
+        }
+    }
 
     function isBonusAvailable() {
         const now = new Date();
@@ -681,6 +713,13 @@
         overlay.classList.add('visible');
     }
 
+    function closeContentOverlay() {
+        setVideoMusicDucking(false);
+        const overlay = document.getElementById('content-overlay');
+        overlay.classList.remove('visible');
+        overlay.innerHTML = '';
+    }
+
     // Alias falls sudoku.html closeSudokuOverlay() aufruft
     function closeSudokuOverlay() {
         closeContentOverlay();
@@ -765,37 +804,35 @@
         });
     }
 
-    let pendingMusicResume = false;
+    window.onload = () => {
+        generateAdventDoors();
+        syncCanvasAspectRatio();
+        initSnow3D();
+        updateSnow3D();
+        centerScrollView();
 
-    function resumeAdventAudioNow() {
-        const audio = document.getElementById('advent-audio');
-        if (!audio) return;
-        try { audio.volume = 1.0; } catch (e) {}
+        applyMusicTrack(getSelectedTrackKey(), false);
 
-        const playPromise = audio.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.then(() => {
-                pendingMusicResume = false;
-            }).catch(() => {
-                pendingMusicResume = true;
-            });
-        } else {
-            pendingMusicResume = false;
+        const adventAudio = document.getElementById('advent-audio');
+        if (adventAudio) {
+            const tryPlayAudio = () => {
+                if (pendingMusicResume) {
+                    resumeAdventAudioNow();
+                    return;
+                }
+                if (!adventAudio.paused) return;
+                adventAudio.play().then(() => {
+                    document.removeEventListener('pointerdown', tryPlayAudio);
+                    document.removeEventListener('touchstart', tryPlayAudio);
+                    document.removeEventListener('scroll', tryPlayAudio, true);
+                }).catch(() => {});
+            };
+
+            tryPlayAudio();
+            document.addEventListener('pointerdown', tryPlayAudio, { passive: true });
+            document.addEventListener('touchstart', tryPlayAudio, { passive: true });
+            document.addEventListener('scroll', tryPlayAudio, { passive: true, capture: true });
         }
-    }
-
-    function setVideoMusicDucking(ducked) {
-        const audio = document.getElementById('advent-audio');
-        if (!audio) return;
-
-        if (ducked) {
-            audio.volume = 0.15;
-        } else {
-            audio.volume = 1.0;
-            pendingMusicResume = true;
-            resumeAdventAudioNow();
-        }
-    }
     };
 </script>
 </body>
