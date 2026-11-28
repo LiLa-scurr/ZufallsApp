@@ -60,29 +60,33 @@
     <div class="spruch-box">
         <h2 id="spruch-title">Spruch</h2>
         <p id="spruch-text" class="spruch-text"></p>
-        <button class="spruch-btn" onclick="closeOverlay()">Schließen</button>
+        <button type="button" class="spruch-btn" onclick="closeOverlay()">Schließen</button>
     </div>
 
     <script>
-        // Hier deine 20 Sprüche eintragen (Index 0 bis 19)
+        // Unterordner fuer deine Sprachaufnahmen (mit Schraegstrich am Ende)
+        const SPRUECHE_AUDIO_ORDNER = 'sprueche/';
+
+        // Jedem Spruch ist genau eine Audiodatei zugeordnet:
+        // { text: '...', audio: 'spruch1.mp3' } (oder 'sprueche/spruch1.mp3' / URL)
         const SPRUECHE = [
-            "Eine Oma muss man schlagen.",
-            "Wer anderen eine Grube gräbt, der hat ein Gruben-Grab-Gerät.",
-            "Wer anderen eine Bratwurst brät, der hat ein Bratwurst-Brat-Gerät.",
-            "Morgenstund hat Blei im Arsch.",
-            "Wer das liest ist eine Maus.",
-            "Hah! Ich bin der Zauberer!",
-            "Määähh! Ich möchte, Trauben!",
-            "Uhhhh, ich bin der Geist!",
-            "Da hat doch jemand die Ritterrüstung umgeschmissen! Ich geh bis in deinen Raum!",
-            "Ohjeee! Miau, der Rabe hat die Kirschen gestohlen!",
-            "Gib mir, meine Mausi!",
-            "Auf dem Hintergrund Bild siehst du mich, wie ich durchs verschneite Finnland wandere und meine liebste Lotti suche.",
-            "Habiiiiibpb!",
-            "Wallah billah schwöre sogar Digga. Noch son Ding, Penisring.",
-            "Gude Guido, geiler Garten!",
-            "Liebe Lotti, lässige Lamas liegen lustigerweise lebenslang!",
-            "Lasagne lässt Linsensuppe locker links liegen."
+            { text: "Eine Oma muss man schlagen.", audio: "spruch1.mp3" },
+            { text: "Wer anderen eine Grube gräbt, der hat ein Gruben-Grab-Gerät.", audio: "spruch2.mp3" },
+            { text: "Wer anderen eine Bratwurst brät, der hat ein Bratwurst-Brat-Gerät.", audio: "spruch3.mp3" },
+            { text: "Morgenstund hat Blei im Arsch.", audio: "spruch4.mp3" },
+            { text: "Wer das liest ist eine Maus.", audio: "spruch5.mp3" },
+            { text: "Hah! Ich bin der Zauberer!", audio: "spruch6.mp3" },
+            { text: "Määähh! Ich möchte, Trauben!", audio: "spruch7.mp3" },
+            { text: "Uhhhh, ich bin der Geist!", audio: "spruch8.mp3" },
+            { text: "Da hat doch jemand die Ritterrüstung umgeschmissen! Ich geh bis in deinen Raum!", audio: "spruch9.mp3" },
+            { text: "Ohjeee! Miau, der Rabe hat die Kirschen gestohlen!", audio: "spruch10.mp3" },
+            { text: "Gib mir, meine Mausi!", audio: "spruch11.mp3" },
+            { text: "Auf dem Hintergrund Bild siehst du mich, wie ich durchs verschneite Finnland wandere und meine liebste Lotti suche.", audio: "spruch12.mp3" },
+            { text: "Habiiiiibpb!", audio: "spruch13.mp3" },
+            { text: "Wallah billah schwöre sogar Digga. Noch son Ding, Penisring.", audio: "spruch14.mp3" },
+            { text: "Gude Guido, geiler Garten!", audio: "spruch15.mp3" },
+            { text: "Liebe Lotti, lässige Lamas liegen lustigerweise lebenslang!", audio: "spruch16.mp3" },
+            { text: "Lasagne lässt Linsensuppe locker links liegen.", audio: "spruch17.mp3" }
         ];
 
         const USED_STORAGE_KEY = 'lotti_advent_used_sprueche_v1';
@@ -93,9 +97,82 @@
         const doorKey = params.get('door') || 'default';
         const isFresh = params.has('fresh');
 
+        let spruchAudioEl = null;
+        let spruchAudioTimer = null;
+
         if (params.get('door')) {
             document.getElementById('spruch-title').innerText =
                 String(doorKey).startsWith('Test') ? 'Spruch – ' + doorKey + '-Türchen' : 'Spruch – Türchen ' + doorKey;
+        }
+
+        function setParentMusicDucking(ducked) {
+            if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
+                window.parent.setVideoMusicDucking(ducked);
+            } else if (window.parent && typeof window.parent.setVideoMusicFade === 'function') {
+                window.parent.setVideoMusicFade(ducked);
+            }
+        }
+
+        function resolveAudioSrc(rawAudio) {
+            if (!rawAudio) return '';
+            const trimmed = String(rawAudio).trim();
+            if (!trimmed) return '';
+            if (/^(https?:\/\/|data:|\/)/i.test(trimmed)) return trimmed;
+            if (SPRUECHE_AUDIO_ORDNER && !trimmed.startsWith(SPRUECHE_AUDIO_ORDNER)) {
+                return SPRUECHE_AUDIO_ORDNER.replace(/\/?$/, '/') + trimmed.replace(/^\/+/, '');
+            }
+            return trimmed;
+        }
+
+        function stopSpruchAudio() {
+            if (spruchAudioTimer) {
+                clearTimeout(spruchAudioTimer);
+                spruchAudioTimer = null;
+            }
+            if (spruchAudioEl) {
+                try {
+                    spruchAudioEl.pause();
+                    spruchAudioEl.currentTime = 0;
+                    spruchAudioEl.removeAttribute('src');
+                    spruchAudioEl.load();
+                } catch (e) {}
+                spruchAudioEl = null;
+            }
+            setParentMusicDucking(false);
+        }
+
+        function playSpruchAudioOnceAfterDelay(rawAudio, delayMs = 500) {
+            const src = resolveAudioSrc(rawAudio);
+            if (!src) return;
+
+            stopSpruchAudio();
+
+            spruchAudioTimer = setTimeout(() => {
+                spruchAudioTimer = null;
+
+                const audio = new Audio(src);
+                audio.loop = false;
+                audio.playsInline = true;
+                spruchAudioEl = audio;
+
+                const restoreMusic = () => {
+                    if (spruchAudioEl === audio) {
+                        spruchAudioEl = null;
+                    }
+                    setParentMusicDucking(false);
+                };
+
+                audio.addEventListener('ended', restoreMusic, { once: true });
+                audio.addEventListener('error', restoreMusic, { once: true });
+
+                setParentMusicDucking(true);
+                const playPromise = audio.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {
+                        restoreMusic();
+                    });
+                }
+            }, delayMs);
         }
 
         function loadUsedIndices() {
@@ -175,9 +252,22 @@
             return chosenIndex;
         }
 
+        function normalizeSpruchEntry(entry) {
+            if (typeof entry === 'string') {
+                return { text: entry, audio: '' };
+            }
+            if (entry && typeof entry === 'object') {
+                return {
+                    text: entry.text || '',
+                    audio: entry.audio || ''
+                };
+            }
+            return { text: '', audio: '' };
+        }
+
         function getSpruchForDoor(door, freshMode) {
             if (SPRUECHE.length === 0) {
-                return "Keine Sprüche hinterlegt.";
+                return { text: "Keine Sprüche hinterlegt.", audio: "" };
             }
 
             const used = loadUsedIndices();
@@ -186,7 +276,7 @@
                 const lastFresh = getLastFreshIndex();
                 const chosenIndex = pickNextIndex(used, lastFresh);
                 setLastFreshIndex(chosenIndex);
-                return SPRUECHE[chosenIndex];
+                return normalizeSpruchEntry(SPRUECHE[chosenIndex]);
             }
 
             const doorMap = loadDoorMap();
@@ -195,7 +285,7 @@
             if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
                 const savedIndex = doorMap[door];
                 if (Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < SPRUECHE.length) {
-                    return SPRUECHE[savedIndex];
+                    return normalizeSpruchEntry(SPRUECHE[savedIndex]);
                 }
             }
 
@@ -204,10 +294,12 @@
             doorMap[door] = chosenIndex;
             saveDoorMap(doorMap);
 
-            return SPRUECHE[chosenIndex];
+            return normalizeSpruchEntry(SPRUECHE[chosenIndex]);
         }
 
         function closeOverlay() {
+            stopSpruchAudio();
+
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
                 window.parent.closeContentOverlay();
             } else if (window.parent && typeof window.parent.closeSudokuOverlay === 'function') {
@@ -215,7 +307,12 @@
             }
         }
 
-        document.getElementById('spruch-text').innerText = '„' + getSpruchForDoor(doorKey, isFresh) + '“';
+        window.addEventListener('pagehide', stopSpruchAudio);
+        window.addEventListener('beforeunload', stopSpruchAudio);
+
+        const activeSpruch = getSpruchForDoor(doorKey, isFresh);
+        document.getElementById('spruch-text').innerText = '„' + activeSpruch.text + '“';
+        playSpruchAudioOnceAfterDelay(activeSpruch.audio, 500);
     </script>
 </body>
 </html>
