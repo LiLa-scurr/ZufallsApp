@@ -99,6 +99,7 @@
             font-size: 14px !important;
             color: #ffd57e !important;
             margin-bottom: 14px !important;
+            white-space: pre-line;
         }
 
         .popup-content button {
@@ -680,10 +681,10 @@
 
         if (isWeihnachtsbaumDoor(doorKey)) {
             if (promptEl) {
-                promptEl.innerText = 'Weihnachten (wie 24.12.): Jedes Mal etwas Neues!';
+                promptEl.innerText = 'Fröhliche Weihnacht mein Schatz 🎄🫂 Damit du auch sehen kannst, was ich noch alles auf Lager hatte, kannst du hier jeden Knopf beliebig oft klicken und kriegst immer was neues angezeigt, bis es sich irgendwann wiederholt. Ich liebe dich! ❤️';
             }
             if (subtextEl) {
-                subtextEl.innerText = 'Klicke beliebig oft auf einen Knopf – bei jedem Klick erscheint ein neuer Inhalt.';
+                subtextEl.innerText = '';
             }
             buttons.forEach((btn) => {
                 btn.classList.remove('option-dimmed');
@@ -694,10 +695,10 @@
 
         if (isNikolausDoor(doorKey)) {
             if (promptEl) {
-                promptEl.innerText = 'Nikolaus (wie 6.12.): Alle Optionen frei wählbar';
+                promptEl.innerText = 'Fröhlichen Nikolaus meine Liebste! 💝\nZur Feier des Tages, ist heute jede Option freigeschaltet. Viel Spaß!';
             }
             if (subtextEl) {
-                subtextEl.innerText = 'Du kannst jede Option jederzeit öffnen und ansehen.';
+                subtextEl.innerText = '';
             }
             buttons.forEach((btn) => {
                 btn.classList.remove('option-dimmed');
@@ -908,7 +909,7 @@
     }
 
     // Weihnachts-Funktion (für Türchen 24 sowie aktuell zum Testen für T3):
-    // Bei jedem Button-Klick unbegrenzt möglich und jedes Mal ein frischer Aufruf für neuen Inhalt
+    // ?door= bleibt sauber auf dem Türchen (z. B. 24), während ?fresh=... für jedes Mal neu zieht
     function openChristmasContent(doorKey, type) {
         christmasClickCounter += 1;
         saveDoorChoice(doorKey, type);
@@ -921,15 +922,15 @@
             return;
         }
 
-        const freshKey = 'xmas_' + Date.now() + '_' + christmasClickCounter + '_' + Math.random().toString(36).slice(2, 8);
+        const freshToken = Date.now() + '_' + christmasClickCounter + '_' + Math.random().toString(36).slice(2, 8);
         const overlay = document.getElementById('content-overlay');
         overlay.innerHTML =
             '<iframe class="content-frame" src="' +
             page +
             '?door=' +
-            encodeURIComponent(freshKey) +
+            encodeURIComponent(doorKey) +
             '&fresh=' +
-            encodeURIComponent(freshKey) +
+            encodeURIComponent(freshToken) +
             '"></iframe>';
         overlay.classList.add('visible');
     }
