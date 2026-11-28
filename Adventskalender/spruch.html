@@ -148,6 +148,39 @@
         const spruchAudioEl = document.getElementById('spruch-audio');
         const playButton = document.getElementById('play-audio-btn');
 
+        let audioContext = null;
+        let audioSourceNode = null;
+        let audioGainNode = null;
+        
+        async function activateAudioBoost() {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        
+            if (!AudioContextClass) {
+                spruchAudioEl.volume = 1;
+                return;
+            }
+        
+            try {
+                if (!audioContext) {
+                    audioContext = new AudioContextClass();
+        
+                    audioSourceNode = audioContext.createMediaElementSource(spruchAudioEl);
+                    audioGainNode = audioContext.createGain();
+        
+                    audioGainNode.gain.value = 2.0;
+        
+                    audioSourceNode.connect(audioGainNode);
+                    audioGainNode.connect(audioContext.destination);
+                }
+        
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+            } catch (e) {
+                spruchAudioEl.volume = 1;
+            }
+        }
+
         let isClosingOverlay = false;
         let hasFinishedOnce = false;
 
@@ -234,25 +267,23 @@
             playButton.innerText = '▶ Abspielen';
         }
 
-        // Play-Button: Starten, Pausieren und erneutes Abspielen
         async function toggleSpruchAudio() {
             if (isClosingOverlay || !spruchAudioEl || !spruchAudioEl.src) {
                 return;
             }
-
-            // Wenn Audio gerade läuft: pausieren
+        
             if (!spruchAudioEl.paused) {
                 spruchAudioEl.pause();
                 return;
             }
-
-            // Wenn Audio bereits beendet wurde: von vorne starten
+        
             if (hasFinishedOnce || spruchAudioEl.ended) {
                 spruchAudioEl.currentTime = 0;
                 hasFinishedOnce = false;
             }
-
+        
             try {
+                await activateAudioBoost();
                 await spruchAudioEl.play();
             } catch (e) {
                 setParentMusicDucking(false);
