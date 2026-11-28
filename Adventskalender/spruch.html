@@ -87,13 +87,15 @@
 
         const USED_STORAGE_KEY = 'lotti_advent_used_sprueche_v1';
         const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_sprueche_v1';
+        const LAST_FRESH_STORAGE_KEY = 'lotti_advent_last_fresh_spruch_v1';
 
         const params = new URLSearchParams(window.location.search);
         const doorKey = params.get('door') || 'default';
+        const isFresh = params.has('fresh');
 
         if (params.get('door')) {
             document.getElementById('spruch-title').innerText =
-                doorKey === 'Test' ? 'Spruch – Test-Türchen' : 'Spruch – Türchen ' + doorKey;
+                String(doorKey).startsWith('Test') ? 'Spruch – ' + doorKey + '-Türchen' : 'Spruch – Türchen ' + doorKey;
         }
 
         function loadUsedIndices() {
@@ -131,9 +133,60 @@
             } catch (e) {}
         }
 
-        function getSpruchForDoor(door) {
+        function getLastFreshIndex() {
+            try {
+                const raw = sessionStorage.getItem(LAST_FRESH_STORAGE_KEY);
+                const num = Number(raw);
+                return Number.isInteger(num) ? num : -1;
+            } catch (e) {
+                return -1;
+            }
+        }
+
+        function setLastFreshIndex(idx) {
+            try {
+                sessionStorage.setItem(LAST_FRESH_STORAGE_KEY, String(idx));
+            } catch (e) {}
+        }
+
+        function pickNextIndex(used, avoidIndex) {
+            let currentUsed = Array.isArray(used) ? [...used] : [];
+            if (currentUsed.length >= SPRUECHE.length) {
+                currentUsed = [];
+            }
+
+            let candidates = [];
+            for (let i = 0; i < SPRUECHE.length; i++) {
+                if (!currentUsed.includes(i)) {
+                    candidates.push(i);
+                }
+            }
+
+            if (candidates.length > 1 && avoidIndex >= 0) {
+                const withoutLast = candidates.filter(i => i !== avoidIndex);
+                if (withoutLast.length > 0) {
+                    candidates = withoutLast;
+                }
+            }
+
+            const chosenIndex = candidates[Math.floor(Math.random() * candidates.length)];
+            currentUsed.push(chosenIndex);
+            saveUsedIndices(currentUsed);
+            return chosenIndex;
+        }
+
+        function getSpruchForDoor(door, freshMode) {
             if (SPRUECHE.length === 0) {
                 return "Keine Sprüche hinterlegt.";
+            }
+
+            const used = loadUsedIndices();
+
+            if (freshMode) {
+                const lastFresh = getLastFreshIndex();
+                const chosenIndex = pickNextIndex(used, lastFresh);
+                setLastFreshIndex(chosenIndex);
+                return SPRUECHE[chosenIndex];
             }
 
             const doorMap = loadDoorMap();
@@ -147,22 +200,7 @@
             }
 
             // Sonst einen noch nicht verwendeten Spruch zufällig ziehen
-            let used = loadUsedIndices();
-            if (used.length >= SPRUECHE.length) {
-                used = [];
-            }
-
-            const remaining = [];
-            for (let i = 0; i < SPRUECHE.length; i++) {
-                if (!used.includes(i)) {
-                    remaining.push(i);
-                }
-            }
-
-            const chosenIndex = remaining[Math.floor(Math.random() * remaining.length)];
-            used.push(chosenIndex);
-            saveUsedIndices(used);
-
+            const chosenIndex = pickNextIndex(used, -1);
             doorMap[door] = chosenIndex;
             saveDoorMap(doorMap);
 
@@ -177,7 +215,7 @@
             }
         }
 
-        document.getElementById('spruch-text').innerText = '„' + getSpruchForDoor(doorKey) + '“';
+        document.getElementById('spruch-text').innerText = '„' + getSpruchForDoor(doorKey, isFresh) + '“';
     </script>
 </body>
 </html>
