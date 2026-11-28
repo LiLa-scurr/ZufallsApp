@@ -383,6 +383,10 @@
 
     let pendingMusicResume = false;
 
+    // Separate Musiksteuerung für Sprüche (Video-Steuerung bleibt unverändert)
+    let spruchMusicPauseActive = false;
+    let spruchMusicShouldResume = false;
+
     const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v2';
     const BONUS_ACTIVATED_STORAGE_KEY = 'lotti_advent_bonus_music_unlocked_v1';
     const MUSIC_TRACK_STORAGE_KEY = 'lotti_advent_selected_music_v1';
@@ -470,6 +474,58 @@
             resumeAdventAudioNow();
         }
     }
+
+    // =====================================================
+    // SEPARATE MUSIKSTEUERUNG NUR FÜR SPRÜCHE
+    // Die bestehende Video-Musiksteuerung oben bleibt unangetastet.
+    // =====================================================
+
+    function setSpruchMusicPaused(paused) {
+        const audio = document.getElementById('advent-audio');
+        if (!audio) return;
+
+        if (paused) {
+            // Beim ersten Spruch-Start merken, ob die Musik vorher lief.
+            if (spruchMusicPauseActive) return;
+
+            spruchMusicShouldResume = !audio.paused || pendingMusicResume;
+            spruchMusicPauseActive = true;
+            pendingMusicResume = false;
+
+            audio.pause();
+            return;
+        }
+
+        // Nur eine Pause aufheben, die vom Spruch ausgelöst wurde.
+        if (!spruchMusicPauseActive) return;
+
+        const shouldResume = spruchMusicShouldResume;
+        spruchMusicPauseActive = false;
+        spruchMusicShouldResume = false;
+
+        if (shouldResume) {
+            resumeAdventAudioNow();
+        }
+    }
+
+    // Für spruch.html aus dem iframe erreichbar machen.
+    window.setSpruchMusicPaused = setSpruchMusicPaused;
+
+    // Eigene Schließfunktion für Sprüche. Sie ruft ausdrücklich NICHT
+    // closeContentOverlay() auf, damit die Video-Musiksteuerung unberührt bleibt.
+    function closeSpruchContentOverlay() {
+        setSpruchMusicPaused(false);
+
+        const overlay = document.getElementById('content-overlay');
+        if (overlay) {
+            overlay.classList.remove('visible');
+            overlay.innerHTML = '';
+        }
+
+        refreshAllDoorBadges();
+    }
+
+    window.closeSpruchContentOverlay = closeSpruchContentOverlay;
 
     function isBonusAvailable() {
         const now = new Date();
