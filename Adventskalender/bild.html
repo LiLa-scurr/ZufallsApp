@@ -86,9 +86,11 @@
 
         const USED_STORAGE_KEY = 'lotti_advent_used_bilder_v1';
         const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_bilder_v1';
+        const LAST_FRESH_STORAGE_KEY = 'lotti_advent_last_fresh_bild_v1';
 
         const params = new URLSearchParams(window.location.search);
         const doorKey = params.get('door') || 'default';
+        const isFresh = params.has('fresh');
 
         if (params.get('door')) {
             document.getElementById('bild-title').innerText =
@@ -140,9 +142,60 @@
             } catch (e) {}
         }
 
-        function getBildForDoor(door) {
+        function getLastFreshIndex() {
+            try {
+                const raw = sessionStorage.getItem(LAST_FRESH_STORAGE_KEY);
+                const num = Number(raw);
+                return Number.isInteger(num) ? num : -1;
+            } catch (e) {
+                return -1;
+            }
+        }
+
+        function setLastFreshIndex(idx) {
+            try {
+                sessionStorage.setItem(LAST_FRESH_STORAGE_KEY, String(idx));
+            } catch (e) {}
+        }
+
+        function pickNextIndex(used, avoidIndex) {
+            let currentUsed = Array.isArray(used) ? [...used] : [];
+            if (currentUsed.length >= BILDER.length) {
+                currentUsed = [];
+            }
+
+            let candidates = [];
+            for (let i = 0; i < BILDER.length; i++) {
+                if (!currentUsed.includes(i)) {
+                    candidates.push(i);
+                }
+            }
+
+            if (candidates.length > 1 && avoidIndex >= 0) {
+                const withoutLast = candidates.filter(i => i !== avoidIndex);
+                if (withoutLast.length > 0) {
+                    candidates = withoutLast;
+                }
+            }
+
+            const chosenIndex = candidates[Math.floor(Math.random() * candidates.length)];
+            currentUsed.push(chosenIndex);
+            saveUsedIndices(currentUsed);
+            return chosenIndex;
+        }
+
+        function getBildForDoor(door, freshMode) {
             if (!BILDER.length) {
                 return { src: '', caption: 'Noch keine Bilder in BILDER hinterlegt.' };
+            }
+
+            const used = loadUsedIndices();
+
+            if (freshMode) {
+                const lastFresh = getLastFreshIndex();
+                const chosenIndex = pickNextIndex(used, lastFresh);
+                setLastFreshIndex(chosenIndex);
+                return BILDER[chosenIndex];
             }
 
             const doorMap = loadDoorMap();
@@ -153,22 +206,7 @@
                 }
             }
 
-            let used = loadUsedIndices();
-            if (used.length >= BILDER.length) {
-                used = [];
-            }
-
-            const remaining = [];
-            for (let i = 0; i < BILDER.length; i++) {
-                if (!used.includes(i)) {
-                    remaining.push(i);
-                }
-            }
-
-            const chosenIndex = remaining[Math.floor(Math.random() * remaining.length)];
-            used.push(chosenIndex);
-            saveUsedIndices(used);
-
+            const chosenIndex = pickNextIndex(used, -1);
             doorMap[door] = chosenIndex;
             saveDoorMap(doorMap);
 
@@ -186,7 +224,7 @@
             }
         }
 
-        const item = getBildForDoor(doorKey);
+        const item = getBildForDoor(doorKey, isFresh);
         const imgEl = document.getElementById('bild-img');
         const resolvedSrc = resolveBildSrc(item.src);
         if (resolvedSrc) {
