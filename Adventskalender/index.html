@@ -427,12 +427,16 @@
         return '❄️';
     }
 
+    // Türchen 6 sowie Test 2 nutzen die Nikolaus-Logik
     function isNikolausDoor(doorKey) {
-        return doorKey === 6 || String(doorKey) === '6';
+        const key = String(doorKey);
+        return doorKey === 6 || key === '6' || key === 'Test 2';
     }
 
+    // Türchen 24 sowie Test 3 nutzen die Weihnachtsbaum-Logik
     function isWeihnachtsbaumDoor(doorKey) {
-        return doorKey === 24 || String(doorKey) === '24';
+        const key = String(doorKey);
+        return doorKey === 24 || key === '24' || key === 'Test 3';
     }
 
     function resumeAdventAudioNow() {
@@ -584,17 +588,7 @@
         const choices = loadDoorChoices();
         const entry = choices[String(doorKey)];
 
-        if (isNikolausDoor(doorKey)) {
-            if (Array.isArray(entry)) {
-                return entry.filter((t) => ALL_CHOICE_TYPES.includes(t));
-            }
-            if (typeof entry === 'string' && ALL_CHOICE_TYPES.includes(entry)) {
-                return [entry];
-            }
-            return [];
-        }
-
-        if (isWeihnachtsbaumDoor(doorKey)) {
+        if (isNikolausDoor(doorKey) || isWeihnachtsbaumDoor(doorKey)) {
             if (Array.isArray(entry)) {
                 return entry.filter((t) => ALL_CHOICE_TYPES.includes(t));
             }
@@ -611,11 +605,7 @@
         const choices = loadDoorChoices();
         const key = String(doorKey);
 
-        if (isNikolausDoor(doorKey)) {
-            const currentList = getUsedTypesForDoor(doorKey).filter((t) => t !== type);
-            currentList.push(type);
-            choices[key] = currentList;
-        } else if (isWeihnachtsbaumDoor(doorKey)) {
+        if (isNikolausDoor(doorKey) || isWeihnachtsbaumDoor(doorKey)) {
             const currentList = getUsedTypesForDoor(doorKey).filter((t) => t !== type);
             currentList.push(type);
             choices[key] = currentList;
@@ -643,7 +633,7 @@
         if (isNikolausDoor(doorKey)) {
             const list = getUsedTypesForDoor(doorKey);
             if (list.length > 0) {
-                return optionEmojisByType[list[list.length - 1]] || '🎅';
+                return optionEmojisByType[list[list.length - 1]] || '🎅🏼';
             }
             return '';
         }
@@ -689,7 +679,7 @@
 
         if (isWeihnachtsbaumDoor(doorKey)) {
             if (promptEl) {
-                promptEl.innerText = 'Weihnachts-Special: Alles unbegrenzt möglich!';
+                promptEl.innerText = 'Weihnachts-Special (wie 24.12.): Alles unbegrenzt möglich!';
             }
             if (subtextEl) {
                 subtextEl.innerText = 'Du kannst jeden Knopf beliebig oft drücken und jedes Mal etwas Neues entdecken.';
@@ -705,13 +695,13 @@
             const hasAnyUsed = usedTypes.length > 0;
             if (promptEl) {
                 promptEl.innerText = hasAnyUsed
-                    ? 'Nikolaus-Special: Gewähltes bleibt anzeigbar (' + usedTypes.length + '/4)'
-                    : 'Nikolaus-Special: Wähle deine Nikolaus-Überraschungen';
+                    ? 'Nikolaus-Special (wie 6.12.): Gewähltes bleibt anzeigbar (' + usedTypes.length + '/4)'
+                    : 'Nikolaus-Special (wie 6.12.): Wähle deine Überraschung';
             }
             if (subtextEl) {
                 subtextEl.innerText = hasAnyUsed
                     ? 'Bereits gewählte Sachen kannst du jederzeit wieder ansehen. Noch nicht gewählte sind ausgegraut.'
-                    : 'Du kannst am 6.12. nach und nach verschiedene Sachen auswählen.';
+                    : 'Du kannst am 6.12. deine gewählten Sachen jederzeit wieder ansehen.';
             }
             buttons.forEach((btn) => {
                 const type = btn.dataset.choiceType;
