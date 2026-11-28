@@ -177,14 +177,18 @@
             { youtube: 'https://www.youtube.com/shorts/yuKJ7w5WYQs'},
             { youtube: 'https://www.youtube.com/shorts/b5-iQtatjd4'},
             { youtube: 'https://www.youtube.com/shorts/4rYX4ROqRlg'},
+            { youtube: 'https://www.youtube.com/shorts/gqBFbEd0B2A'},
+            { youtube: 'https://www.youtube.com/shorts/DFG8t36sxL4'},
             { youtube: 'https://www.youtube.com/shorts/kuwMXwnVEgQ'}
         ];
 
         const USED_STORAGE_KEY = 'lotti_advent_used_videos_v1';
         const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_videos_v1';
+        const LAST_FRESH_STORAGE_KEY = 'lotti_advent_last_fresh_video_v1';
 
         const params = new URLSearchParams(window.location.search);
         const doorKey = params.get('door') || 'default';
+        const isFresh = params.has('fresh');
 
         if (params.get('door')) {
             document.getElementById('video-title').innerText =
@@ -242,9 +246,60 @@
             } catch (e) {}
         }
 
-        function getVideoForDoor(door) {
+        function getLastFreshIndex() {
+            try {
+                const raw = sessionStorage.getItem(LAST_FRESH_STORAGE_KEY);
+                const num = Number(raw);
+                return Number.isInteger(num) ? num : -1;
+            } catch (e) {
+                return -1;
+            }
+        }
+
+        function setLastFreshIndex(idx) {
+            try {
+                sessionStorage.setItem(LAST_FRESH_STORAGE_KEY, String(idx));
+            } catch (e) {}
+        }
+
+        function pickNextIndex(used, avoidIndex) {
+            let currentUsed = Array.isArray(used) ? [...used] : [];
+            if (currentUsed.length >= VIDEOS.length) {
+                currentUsed = [];
+            }
+
+            let candidates = [];
+            for (let i = 0; i < VIDEOS.length; i++) {
+                if (!currentUsed.includes(i)) {
+                    candidates.push(i);
+                }
+            }
+
+            if (candidates.length > 1 && avoidIndex >= 0) {
+                const withoutLast = candidates.filter(i => i !== avoidIndex);
+                if (withoutLast.length > 0) {
+                    candidates = withoutLast;
+                }
+            }
+
+            const chosenIndex = candidates[Math.floor(Math.random() * candidates.length)];
+            currentUsed.push(chosenIndex);
+            saveUsedIndices(currentUsed);
+            return chosenIndex;
+        }
+
+        function getVideoForDoor(door, freshMode) {
             if (!VIDEOS.length) {
                 return { src: '', caption: 'Noch keine Videos in VIDEOS hinterlegt.' };
+            }
+
+            const used = loadUsedIndices();
+
+            if (freshMode) {
+                const lastFresh = getLastFreshIndex();
+                const chosenIndex = pickNextIndex(used, lastFresh);
+                setLastFreshIndex(chosenIndex);
+                return VIDEOS[chosenIndex];
             }
 
             const doorMap = loadDoorMap();
@@ -255,22 +310,7 @@
                 }
             }
 
-            let used = loadUsedIndices();
-            if (used.length >= VIDEOS.length) {
-                used = [];
-            }
-
-            const remaining = [];
-            for (let i = 0; i < VIDEOS.length; i++) {
-                if (!used.includes(i)) {
-                    remaining.push(i);
-                }
-            }
-
-            const chosenIndex = remaining[Math.floor(Math.random() * remaining.length)];
-            used.push(chosenIndex);
-            saveUsedIndices(used);
-
+            const chosenIndex = pickNextIndex(used, -1);
             doorMap[door] = chosenIndex;
             saveDoorMap(doorMap);
 
@@ -373,7 +413,7 @@
             }
         }
 
-        const item = getVideoForDoor(doorKey);
+        const item = getVideoForDoor(doorKey, isFresh);
         renderMedia(item);
         document.getElementById('video-caption').innerText = item.caption || '';
     </script>
