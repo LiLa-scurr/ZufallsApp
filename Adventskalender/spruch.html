@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Spruch des Tages</title>
-
     <style>
         html, body {
             margin: 0;
@@ -82,17 +81,14 @@
         }
     </style>
 </head>
-
 <body>
 
     <div class="spruch-box">
-
         <h2 id="spruch-title">Spruch</h2>
 
         <p id="spruch-text" class="spruch-text"></p>
 
         <div class="button-row">
-
             <button
                 type="button"
                 id="play-audio-btn"
@@ -107,29 +103,17 @@
                 onclick="closeOverlay()">
                 Schließen
             </button>
-
         </div>
     </div>
 
     <audio id="spruch-audio" preload="auto" playsinline style="display:none;"></audio>
 
-
     <script>
-
-        // =====================================================
-        // EINSTELLUNGEN
-        // =====================================================
-
         // Unterordner für deine Sprachaufnahmen
         const SPRUECHE_AUDIO_ORDNER = 'sprueche/';
 
-
-        // =====================================================
-        // SPRÜCHE UND AUDIO-DATEIEN
-        // =====================================================
-
+        // Jedem Spruch ist genau eine Audiodatei zugeordnet
         const SPRUECHE = [
-
             { text: "Eine Oma muss man schlagen.", audio: "deleteme.mp3" },
 
             /*
@@ -151,13 +135,7 @@
             */
 
             { text: "Lasagne lässt Linsensuppe locker links liegen.", audio: "spruch17.mp3" }
-
         ];
-
-
-        // =====================================================
-        // SPEICHERUNG UND TÜRCHEN
-        // =====================================================
 
         const USED_STORAGE_KEY = 'lotti_advent_used_sprueche_v1';
         const DOOR_MAP_STORAGE_KEY = 'lotti_advent_door_sprueche_v1';
@@ -170,56 +148,30 @@
         const spruchAudioEl = document.getElementById('spruch-audio');
         const playButton = document.getElementById('play-audio-btn');
 
+
         let isClosingOverlay = false;
         let hasFinishedOnce = false;
 
-
-        // =====================================================
-        // TITEL ANPASSEN
-        // =====================================================
-
         if (params.get('door')) {
-
             document.getElementById('spruch-title').innerText =
                 String(doorKey).startsWith('Test')
                     ? 'Spruch – ' + doorKey + '-Türchen'
                     : 'Spruch – Türchen ' + doorKey;
-
         }
 
-
-        // =====================================================
-        // HINTERGRUNDMUSIK STEUERN
-        // VERWENDET DIE GLEICHE FUNKTION WIE VIDEO.HTML
-        // =====================================================
-
-        function setParentMusicDucking(ducked) {
-
+        // Separate Musiksteuerung nur für Sprüche.
+        // Die Video-Musiksteuerung wird hier nicht verwendet.
+        function setParentSpruchMusicPaused(paused) {
             if (
                 window.parent &&
-                typeof window.parent.setVideoMusicDucking === 'function'
+                typeof window.parent.setSpruchMusicPaused === 'function'
             ) {
-
-                window.parent.setVideoMusicDucking(ducked);
-
-            } else if (
-                window.parent &&
-                typeof window.parent.setVideoMusicFade === 'function'
-            ) {
-
-                window.parent.setVideoMusicFade(ducked);
-
+                window.parent.setSpruchMusicPaused(paused);
             }
-
         }
 
-
-        // =====================================================
-        // AUDIO-PFAD ERMITTELN
-        // =====================================================
-
+        // Audiodateipfad ermitteln
         function resolveAudioSrc(rawAudio) {
-
             if (!rawAudio) return '';
 
             const trimmed = String(rawAudio).trim();
@@ -230,206 +182,109 @@
                 return trimmed;
             }
 
-            if (
-                SPRUECHE_AUDIO_ORDNER &&
-                !trimmed.startsWith(SPRUECHE_AUDIO_ORDNER)
-            ) {
-
-                return SPRUECHE_AUDIO_ORDNER.replace(/\/?$/, '/') +
-                    trimmed.replace(/^\/+/, '');
-
+            if (SPRUECHE_AUDIO_ORDNER && !trimmed.startsWith(SPRUECHE_AUDIO_ORDNER)) {
+                return SPRUECHE_AUDIO_ORDNER.replace(/\/?$/, '/') + trimmed.replace(/^\/+/, '');
             }
 
             return trimmed;
-
         }
 
-
-        // =====================================================
-        // AUDIO VORBEREITEN
-        // AUDIO STARTET NICHT AUTOMATISCH
-        // =====================================================
-
+        // Audio vorbereiten, aber NICHT automatisch abspielen
         function prepareSpruchAudio(rawAudio) {
-
             const src = resolveAudioSrc(rawAudio);
 
             if (!src || !spruchAudioEl) {
-
                 playButton.disabled = true;
                 playButton.innerText = 'Keine Audio vorhanden';
-
                 return;
-
             }
 
             isClosingOverlay = false;
             hasFinishedOnce = false;
-
             spruchAudioEl.loop = false;
 
-
-            // Wenn die Sprachaufnahme startet:
-            // Hintergrundmusik wie bei einem Video herunterregeln.
-
             spruchAudioEl.onplay = () => {
-
                 if (!isClosingOverlay) {
-
                     playButton.innerText = '⏸ Pause';
-
-                    setParentMusicDucking(true);
-
+                    setParentSpruchMusicPaused(true);
                 }
-
             };
 
-
-            // Wenn die Sprachaufnahme pausiert wird:
-            // Hintergrundmusik bleibt weiterhin heruntergeregelt.
-
+            // Beim Pausieren der Sprachaufnahme bleibt die Hintergrundmusik pausiert.
             spruchAudioEl.onpause = () => {
-
                 if (!isClosingOverlay && !hasFinishedOnce) {
-
                     playButton.innerText = '▶ Weiter';
-
                 }
-
             };
 
-
-            // Wenn die Sprachaufnahme fertig ist:
-            // Hintergrundmusik bleibt weiterhin heruntergeregelt.
-
+            // Auch nach Ende der Sprachaufnahme bleibt die Hintergrundmusik
+            // bis zum Schließen des Spruchfensters pausiert.
             spruchAudioEl.onended = () => {
-
                 hasFinishedOnce = true;
-
                 playButton.innerText = '↻ Erneut abspielen';
-
             };
-
-
-            // Fehler bei der Audiodatei
 
             spruchAudioEl.onerror = () => {
-
                 playButton.disabled = true;
-
                 playButton.innerText = 'Audio nicht verfügbar';
-
+                setParentSpruchMusicPaused(false);
             };
 
-
             spruchAudioEl.src = src;
-
             spruchAudioEl.load();
 
             playButton.disabled = false;
-
             playButton.innerText = '▶ Abspielen';
-
         }
 
-
-        // =====================================================
-        // PLAY / PAUSE / ERNEUT ABSPIELEN
-        // =====================================================
-
+        // Play / Pause / Erneut abspielen
         async function toggleSpruchAudio() {
-
-            if (
-                isClosingOverlay ||
-                !spruchAudioEl ||
-                !spruchAudioEl.src
-            ) {
-
+            if (isClosingOverlay || !spruchAudioEl || !spruchAudioEl.src) {
                 return;
-
             }
 
-
-            // Wenn Audio läuft: pausieren
-
+            // Wenn Audio läuft: pausieren. Die Hintergrundmusik bleibt
+            // bis zum Schließen des Spruchfensters ebenfalls pausiert.
             if (!spruchAudioEl.paused) {
-
                 spruchAudioEl.pause();
-
                 return;
-
             }
-
-
-            // Wenn Audio bereits beendet wurde:
-            // wieder von vorne beginnen
 
             if (hasFinishedOnce || spruchAudioEl.ended) {
-
                 spruchAudioEl.currentTime = 0;
-
                 hasFinishedOnce = false;
-
             }
-
 
             try {
-
-                // Normale Wiedergabe ohne Lautstärkeverstärkung
-
+                // Hintergrundmusik vor dem Start der Sprachaufnahme pausieren.
+                setParentSpruchMusicPaused(true);
                 await spruchAudioEl.play();
-
             } catch (e) {
-
                 console.error('Audio-Wiedergabe fehlgeschlagen:', e);
-
+                setParentSpruchMusicPaused(false);
                 playButton.innerText = '▶ Erneut versuchen';
-
             }
-
         }
 
-
-        // =====================================================
-        // AUDIO BEIM SCHLIESSEN STOPPEN
-        // UND HINTERGRUNDMUSIK WIEDERHERSTELLEN
-        // =====================================================
-
+        // Audio vollständig stoppen und Spruch-Musikpause aufheben
         function stopSpruchAudio() {
-
             isClosingOverlay = true;
 
             if (spruchAudioEl) {
-
                 try {
-
                     spruchAudioEl.pause();
-
                     spruchAudioEl.currentTime = 0;
-
                     spruchAudioEl.removeAttribute('src');
-
                     spruchAudioEl.load();
-
                 } catch (e) {}
-
             }
 
-            // Hintergrundmusik wieder auf normale Lautstärke setzen
-
-            setParentMusicDucking(false);
-
+            setParentSpruchMusicPaused(false);
         }
 
-
-        // =====================================================
-        // VERWENDETE SPRÜCHE LADEN
-        // =====================================================
-
+        // Gespeicherte Sprüche laden
         function loadUsedIndices() {
-
             try {
-
                 const raw = localStorage.getItem(USED_STORAGE_KEY);
 
                 if (!raw) return [];
@@ -443,38 +298,20 @@
                     idx >= 0 &&
                     idx < SPRUECHE.length
                 );
-
             } catch (e) {
-
                 return [];
-
             }
-
         }
-
 
         function saveUsedIndices(indices) {
-
             try {
-
-                localStorage.setItem(
-                    USED_STORAGE_KEY,
-                    JSON.stringify(indices)
-                );
-
+                localStorage.setItem(USED_STORAGE_KEY, JSON.stringify(indices));
             } catch (e) {}
-
         }
 
-
-        // =====================================================
-        // TÜRCHEN-ZUORDNUNG LADEN
-        // =====================================================
-
+        // Türchen-Zuordnung laden
         function loadDoorMap() {
-
             try {
-
                 const raw = localStorage.getItem(DOOR_MAP_STORAGE_KEY);
 
                 if (!raw) return {};
@@ -488,199 +325,112 @@
                 ) ? parsed : {};
 
             } catch (e) {
-
                 return {};
-
             }
-
         }
-
 
         function saveDoorMap(map) {
-
             try {
-
-                localStorage.setItem(
-                    DOOR_MAP_STORAGE_KEY,
-                    JSON.stringify(map)
-                );
-
+                localStorage.setItem(DOOR_MAP_STORAGE_KEY, JSON.stringify(map));
             } catch (e) {}
-
         }
 
-
-        // =====================================================
-        // LETZTEN FRESH-SPRUCH LADEN
-        // =====================================================
-
         function getLastFreshIndex() {
-
             try {
-
                 const raw = sessionStorage.getItem(LAST_FRESH_STORAGE_KEY);
-
                 const num = Number(raw);
 
                 return Number.isInteger(num) ? num : -1;
-
             } catch (e) {
-
                 return -1;
-
             }
-
         }
-
 
         function setLastFreshIndex(idx) {
-
             try {
-
-                sessionStorage.setItem(
-                    LAST_FRESH_STORAGE_KEY,
-                    String(idx)
-                );
-
+                sessionStorage.setItem(LAST_FRESH_STORAGE_KEY, String(idx));
             } catch (e) {}
-
         }
 
-
-        // =====================================================
-        // NÄCHSTEN SPRUCH AUSWÄHLEN
-        // =====================================================
-
+        // Nächsten Spruch auswählen
         function pickNextIndex(used, avoidIndex) {
-
             let currentUsed = Array.isArray(used) ? [...used] : [];
 
-
             if (currentUsed.length >= SPRUECHE.length) {
-
                 currentUsed = [];
-
             }
-
 
             let candidates = [];
 
             for (let i = 0; i < SPRUECHE.length; i++) {
-
                 if (!currentUsed.includes(i)) {
-
                     candidates.push(i);
-
                 }
-
             }
-
 
             if (candidates.length > 1 && avoidIndex >= 0) {
-
-                const withoutLast = candidates.filter(
-                    i => i !== avoidIndex
-                );
+                const withoutLast = candidates.filter(i => i !== avoidIndex);
 
                 if (withoutLast.length > 0) {
-
                     candidates = withoutLast;
-
                 }
-
             }
-
 
             const chosenIndex = candidates[
                 Math.floor(Math.random() * candidates.length)
             ];
 
-
             currentUsed.push(chosenIndex);
-
             saveUsedIndices(currentUsed);
 
             return chosenIndex;
-
         }
 
-
-        // =====================================================
-        // SPRUCHDATEN VEREINHEITLICHEN
-        // =====================================================
-
+        // Spruchdaten vereinheitlichen
         function normalizeSpruchEntry(entry) {
-
             if (typeof entry === 'string') {
-
                 return {
                     text: entry,
                     audio: ''
                 };
-
             }
 
-
             if (entry && typeof entry === 'object') {
-
                 return {
                     text: entry.text || '',
                     audio: entry.audio || ''
                 };
-
             }
-
 
             return {
                 text: '',
                 audio: ''
             };
-
         }
 
-
-        // =====================================================
-        // SPRUCH FÜR DAS TÜRCHEN ERMITTELN
-        // =====================================================
-
+        // Spruch für das jeweilige Türchen ermitteln
         function getSpruchForDoor(door, freshMode) {
-
             if (SPRUECHE.length === 0) {
-
                 return {
                     text: "Keine Sprüche hinterlegt.",
                     audio: ""
                 };
-
             }
-
 
             const used = loadUsedIndices();
 
-
             if (freshMode) {
-
                 const lastFresh = getLastFreshIndex();
-
-                const chosenIndex = pickNextIndex(
-                    used,
-                    lastFresh
-                );
+                const chosenIndex = pickNextIndex(used, lastFresh);
 
                 setLastFreshIndex(chosenIndex);
 
-                return normalizeSpruchEntry(
-                    SPRUECHE[chosenIndex]
-                );
-
+                return normalizeSpruchEntry(SPRUECHE[chosenIndex]);
             }
-
 
             const doorMap = loadDoorMap();
 
-
             if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
-
                 const savedIndex = doorMap[door];
 
                 if (
@@ -688,89 +438,54 @@
                     savedIndex >= 0 &&
                     savedIndex < SPRUECHE.length
                 ) {
-
-                    return normalizeSpruchEntry(
-                        SPRUECHE[savedIndex]
-                    );
-
+                    return normalizeSpruchEntry(SPRUECHE[savedIndex]);
                 }
-
             }
-
 
             const chosenIndex = pickNextIndex(used, -1);
 
             doorMap[door] = chosenIndex;
-
             saveDoorMap(doorMap);
 
-            return normalizeSpruchEntry(
-                SPRUECHE[chosenIndex]
-            );
-
+            return normalizeSpruchEntry(SPRUECHE[chosenIndex]);
         }
 
-
-        // =====================================================
-        // OVERLAY SCHLIESSEN
-        // =====================================================
-
+        // Eigenes Spruch-Overlay schließen, ohne die Video-Steuerung aufzurufen.
         function closeOverlay() {
-
-            // Audio stoppen und Hintergrundmusik wiederherstellen
-
             stopSpruchAudio();
-
 
             if (
                 window.parent &&
+                typeof window.parent.closeSpruchContentOverlay === 'function'
+            ) {
+                window.parent.closeSpruchContentOverlay();
+            } else if (
+                window.parent &&
                 typeof window.parent.closeContentOverlay === 'function'
             ) {
-
+                // Fallback für eine ältere index.html.
                 window.parent.closeContentOverlay();
-
             } else if (
                 window.parent &&
                 typeof window.parent.closeSudokuOverlay === 'function'
             ) {
-
                 window.parent.closeSudokuOverlay();
-
             }
-
         }
 
-
-        // =====================================================
-        // AUDIO BEIM VERLASSEN DER SEITE STOPPEN
-        // =====================================================
-
+        // Audio beim Verlassen der Seite stoppen
         window.addEventListener('pagehide', stopSpruchAudio);
-
         window.addEventListener('beforeunload', stopSpruchAudio);
 
-
-        // =====================================================
-        // AKTUELLEN SPRUCH LADEN
-        // =====================================================
-
-        const activeSpruch = getSpruchForDoor(
-            doorKey,
-            isFresh
-        );
-
+        // Aktuellen Spruch laden
+        const activeSpruch = getSpruchForDoor(doorKey, isFresh);
 
         document.getElementById('spruch-text').innerText =
             '„' + activeSpruch.text + '“';
 
-
-        // Audio nur vorbereiten.
-        // Wiedergabe erst nach Klick auf den Play-Button.
-
+        // Nur vorbereiten – Wiedergabe erst nach Klick auf den Play-Button!
         prepareSpruchAudio(activeSpruch.audio);
 
-
     </script>
-
 </body>
 </html>
