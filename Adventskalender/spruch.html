@@ -99,6 +99,7 @@
 
         let spruchAudioEl = null;
         let spruchAudioTimer = null;
+        let isClosingOverlay = false;
 
         if (params.get('door')) {
             document.getElementById('spruch-title').innerText =
@@ -147,29 +148,39 @@
 
             stopSpruchAudio();
 
+            const audio = document.createElement('audio');
+            audio.preload = 'auto';
+            audio.loop = false;
+            audio.playsInline = true;
+            audio.src = src;
+            spruchAudioEl = audio;
+
+            const onDuckStart = () => {
+                if (!isClosingOverlay && spruchAudioEl === audio) {
+                    setParentMusicDucking(true);
+                }
+            };
+
+            const onDuckEnd = () => {
+                if (spruchAudioEl === audio) {
+                    spruchAudioEl = null;
+                }
+                setParentMusicDucking(false);
+            };
+
+            audio.addEventListener('play', onDuckStart);
+            audio.addEventListener('pause', onDuckEnd, { once: true });
+            audio.addEventListener('ended', onDuckEnd, { once: true });
+            audio.addEventListener('error', onDuckEnd, { once: true });
+
             spruchAudioTimer = setTimeout(() => {
                 spruchAudioTimer = null;
+                if (isClosingOverlay || spruchAudioEl !== audio) return;
 
-                const audio = new Audio(src);
-                audio.loop = false;
-                audio.playsInline = true;
-                spruchAudioEl = audio;
-
-                const restoreMusic = () => {
-                    if (spruchAudioEl === audio) {
-                        spruchAudioEl = null;
-                    }
-                    setParentMusicDucking(false);
-                };
-
-                audio.addEventListener('ended', restoreMusic, { once: true });
-                audio.addEventListener('error', restoreMusic, { once: true });
-
-                setParentMusicDucking(true);
                 const playPromise = audio.play();
                 if (playPromise && typeof playPromise.catch === 'function') {
                     playPromise.catch(() => {
-                        restoreMusic();
+                        onDuckEnd();
                     });
                 }
             }, delayMs);
@@ -298,6 +309,7 @@
         }
 
         function closeOverlay() {
+            isClosingOverlay = true;
             stopSpruchAudio();
 
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
