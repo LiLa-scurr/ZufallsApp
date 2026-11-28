@@ -214,7 +214,7 @@
         }
 
         .advent-door[data-door-key="24"]::before {
-            font-size: 100px;
+            font-size: 120px;
         }
 
         .advent-door.door-opened::before {
@@ -343,7 +343,7 @@
     <!-- POPUP WENN BEREITS EINE ANDERE MÖGLICHKEIT GEWÄHLT WURDE -->
     <div id="choice-locked-modal" class="popup-overlay">
         <div class="popup-content">
-            <h2>Schon eine andere Wahl getroffen 😬</h2>
+            <h2 id="choice-locked-title">Schon eine andere Wahl getroffen 😬</h2>
             <p id="choice-locked-text">Für dieses Türchen hast du dich schon entschieden. Komm an einem anderen Tag wieder!</p>
             <button onclick="closeChoiceLockedModal()">Okay</button>
         </div>
@@ -381,10 +381,11 @@
 
     let pendingMusicResume = false;
 
-    const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v1';
+    const DOOR_CHOICE_STORAGE_KEY = 'lotti_advent_door_choices_v2';
     const BONUS_ACTIVATED_STORAGE_KEY = 'lotti_advent_bonus_music_unlocked_v1';
     const MUSIC_TRACK_STORAGE_KEY = 'lotti_advent_selected_music_v1';
     const TEST_DOORS = ['Test 1', 'Test 2', 'Test 3', 'Test 4'];
+    const ALL_CHOICE_TYPES = ['spruch', 'bild', 'sudoku', 'video'];
 
     const MUSIC_TRACKS = {
         advent: {
@@ -424,6 +425,14 @@
         if (num === 6) return '🎅🏼';
         if (num === 24) return '🎄';
         return '❄️';
+    }
+
+    function isNikolausDoor(doorKey) {
+        return doorKey === 6 || String(doorKey) === '6';
+    }
+
+    function isWeihnachtsbaumDoor(doorKey) {
+        return doorKey === 24 || String(doorKey) === '24';
     }
 
     function resumeAdventAudioNow() {
@@ -571,30 +580,89 @@
         }
     }
 
+    function getUsedTypesForDoor(doorKey) {
+        const choices = loadDoorChoices();
+        const entry = choices[String(doorKey)];
+
+        if (isNikolausDoor(doorKey)) {
+            if (Array.isArray(entry)) {
+                return entry.filter((t) => ALL_CHOICE_TYPES.includes(t));
+            }
+            if (typeof entry === 'string' && ALL_CHOICE_TYPES.includes(entry)) {
+                return [entry];
+            }
+            return [];
+        }
+
+        if (isWeihnachtsbaumDoor(doorKey)) {
+            if (Array.isArray(entry)) {
+                return entry.filter((t) => ALL_CHOICE_TYPES.includes(t));
+            }
+            if (typeof entry === 'string' && ALL_CHOICE_TYPES.includes(entry)) {
+                return [entry];
+            }
+            return [];
+        }
+
+        return (typeof entry === 'string' && ALL_CHOICE_TYPES.includes(entry)) ? [entry] : [];
+    }
+
     function saveDoorChoice(doorKey, type) {
         const choices = loadDoorChoices();
-        if (!Object.prototype.hasOwnProperty.call(choices, String(doorKey))) {
-            choices[String(doorKey)] = type;
-            try {
-                localStorage.setItem(DOOR_CHOICE_STORAGE_KEY, JSON.stringify(choices));
-            } catch (e) {}
+        const key = String(doorKey);
+
+        if (isNikolausDoor(doorKey)) {
+            const currentList = getUsedTypesForDoor(doorKey).filter((t) => t !== type);
+            currentList.push(type);
+            choices[key] = currentList;
+        } else if (isWeihnachtsbaumDoor(doorKey)) {
+            const currentList = getUsedTypesForDoor(doorKey).filter((t) => t !== type);
+            currentList.push(type);
+            choices[key] = currentList;
+        } else {
+            if (!Object.prototype.hasOwnProperty.call(choices, key)) {
+                choices[key] = type;
+            }
         }
+
+        try {
+            localStorage.setItem(DOOR_CHOICE_STORAGE_KEY, JSON.stringify(choices));
+        } catch (e) {}
         refreshAllDoorBadges();
     }
 
-    function getChosenTypeForDoor(doorKey) {
-        const choices = loadDoorChoices();
-        return choices[String(doorKey)] || null;
+    function getBadgeEmojiForDoor(doorKey) {
+        if (isWeihnachtsbaumDoor(doorKey)) {
+            const list = getUsedTypesForDoor(doorKey);
+            if (list.length > 0) {
+                return optionEmojisByType[list[list.length - 1]] || '🎄';
+            }
+            return '';
+        }
+
+        if (isNikolausDoor(doorKey)) {
+            const list = getUsedTypesForDoor(doorKey);
+            if (list.length > 0) {
+                return optionEmojisByType[list[list.length - 1]] || '🎅';
+            }
+            return '';
+        }
+
+        const used = getUsedTypesForDoor(doorKey);
+        if (used.length > 0) {
+            return optionEmojisByType[used[0]] || '✨';
+        }
+        return '';
     }
 
     function applyDoorVisualState(doorEl, num) {
-        const chosenType = getChosenTypeForDoor(num);
+        const used = getUsedTypesForDoor(num);
         const badgeEl = doorEl.querySelector('.advent-door-badge');
 
-        if (chosenType) {
+        if (used.length > 0) {
             doorEl.classList.add('door-opened');
             if (badgeEl) {
-                badgeEl.innerText = optionEmojisByType[chosenType] || '✨';
+                badgeEl.innerText = getBadgeEmojiForDoor(num);
             }
         } else {
             doorEl.classList.remove('door-opened');
@@ -613,11 +681,52 @@
         });
     }
 
-    function updateModalChoiceButtons(alreadyChosenType) {
+    function updateModalChoiceButtons(doorKey) {
         const promptEl = document.getElementById('door-modal-prompt');
         const subtextEl = document.getElementById('door-modal-subtext');
         const buttons = document.querySelectorAll('#door-options-modal .option-btn[data-choice-type]');
+        const usedTypes = getUsedTypesForDoor(doorKey);
 
+        if (isWeihnachtsbaumDoor(doorKey)) {
+            if (promptEl) {
+                promptEl.innerText = 'Weihnachts-Special: Alles unbegrenzt möglich!';
+            }
+            if (subtextEl) {
+                subtextEl.innerText = 'Du kannst jeden Knopf beliebig oft drücken und jedes Mal etwas Neues entdecken.';
+            }
+            buttons.forEach((btn) => {
+                btn.classList.remove('option-dimmed');
+                btn.classList.toggle('option-chosen', usedTypes.includes(btn.dataset.choiceType));
+            });
+            return;
+        }
+
+        if (isNikolausDoor(doorKey)) {
+            const hasAnyUsed = usedTypes.length > 0;
+            if (promptEl) {
+                promptEl.innerText = hasAnyUsed
+                    ? 'Nikolaus-Special: Gewähltes bleibt anzeigbar (' + usedTypes.length + '/4)'
+                    : 'Nikolaus-Special: Wähle deine Nikolaus-Überraschungen';
+            }
+            if (subtextEl) {
+                subtextEl.innerText = hasAnyUsed
+                    ? 'Bereits gewählte Sachen kannst du jederzeit wieder ansehen. Noch nicht gewählte sind ausgegraut.'
+                    : 'Du kannst am 6.12. nach und nach verschiedene Sachen auswählen.';
+            }
+            buttons.forEach((btn) => {
+                const type = btn.dataset.choiceType;
+                const alreadyUsed = usedTypes.includes(type);
+                btn.classList.remove('option-dimmed', 'option-chosen');
+                if (alreadyUsed) {
+                    btn.classList.add('option-chosen');
+                } else if (hasAnyUsed) {
+                    btn.classList.add('option-dimmed');
+                }
+            });
+            return;
+        }
+
+        const alreadyChosenType = usedTypes[0] || null;
         if (alreadyChosenType) {
             const chosenLabel = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
             if (promptEl) {
@@ -799,7 +908,7 @@
 
         selectedDoorNumber = num;
         document.getElementById('door-modal-title').innerText = isTestDoor(num) ? num + '-Türchen' : 'Türchen ' + num;
-        updateModalChoiceButtons(getChosenTypeForDoor(num));
+        updateModalChoiceButtons(num);
         updateDoorBonusButton(num);
         const modal = document.getElementById('door-options-modal');
         modal.classList.add('visible');
@@ -820,10 +929,56 @@
 
     function openDoorContent(type) {
         const doorKey = selectedDoorNumber;
-        const alreadyChosenType = getChosenTypeForDoor(doorKey);
+        const usedTypes = getUsedTypesForDoor(doorKey);
+
+        if (isWeihnachtsbaumDoor(doorKey)) {
+            saveDoorChoice(doorKey, type);
+            const page = contentPagesByType[type];
+            closeDoorModal();
+
+            if (!page) {
+                alert('Hier öffnet sich dann Türchen ' + doorKey + ' mit Inhalt: ' + type.toUpperCase());
+                return;
+            }
+
+            const freshToken = Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+            const overlay = document.getElementById('content-overlay');
+            overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey) + '&fresh=' + encodeURIComponent(freshToken) + '"></iframe>';
+            overlay.classList.add('visible');
+            return;
+        }
+
+        if (isNikolausDoor(doorKey)) {
+            const alreadyUsed = usedTypes.includes(type);
+
+            if (!alreadyUsed && usedTypes.length > 0) {
+                document.getElementById('choice-locked-title').innerText = 'Noch nicht freigeschaltet 😬';
+                document.getElementById('choice-locked-text').innerText =
+                    'Diese Option ist noch nicht freigeschaltet. Bereits gewählte Sachen kannst du weiterhin ansehen – für neue Optionen komm an einem anderen Tag wieder!';
+                document.getElementById('choice-locked-modal').classList.add('visible');
+                return;
+            }
+
+            saveDoorChoice(doorKey, type);
+            const page = contentPagesByType[type];
+            closeDoorModal();
+
+            if (!page) {
+                alert('Hier öffnet sich dann Türchen ' + doorKey + ' mit Inhalt: ' + type.toUpperCase());
+                return;
+            }
+
+            const overlay = document.getElementById('content-overlay');
+            overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey + '_' + type) + '"></iframe>';
+            overlay.classList.add('visible');
+            return;
+        }
+
+        const alreadyChosenType = usedTypes[0] || null;
 
         if (alreadyChosenType && alreadyChosenType !== type) {
             const chosenName = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
+            document.getElementById('choice-locked-title').innerText = 'Schon eine andere Wahl getroffen 😬';
             document.getElementById('choice-locked-text').innerText =
                 'Du hast dich für dieses Türchen schon für „' + chosenName + '“ entschieden. Komm an einem anderen Tag wieder, wenn du etwas anderes ausprobieren möchtest!';
             document.getElementById('choice-locked-modal').classList.add('visible');
