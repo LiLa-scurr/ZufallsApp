@@ -74,10 +74,14 @@
     </div>
 
     <script>
-        // Hier deine Bilder eintragen: { src: '...', caption: '...' }
+        // Unterordner im Repository (mit Schrägstrich am Ende)
+        const BILDER_ORDNER = 'bilder/';
+
+        // Hier deine Bilder eintragen: { src: 'bilder/bild1.jpg', caption: '...' }
+        // (Falls du nur 'bild1.jpg' schreibst, wird BILDER_ORDNER automatisch ergänzt.)
         const BILDER = [
-            { src: 'bild1.jpg', caption: 'Hier kommt deine Bildunterschrift hin.' },
-            { src: 'bild2.jpg', caption: 'Noch ein schönes Bild für Lotti.' }
+            { src: 'bilder/bild1.jpg', caption: 'Hier kommt deine Bildunterschrift hin.' },
+            { src: 'bilder/bild2.jpg', caption: 'Noch ein schönes Bild für Lotti.' }
         ];
 
         const USED_STORAGE_KEY = 'lotti_advent_used_bilder_v1';
@@ -89,6 +93,16 @@
         if (params.get('door')) {
             document.getElementById('bild-title').innerText =
                 String(doorKey).startsWith('Test') ? 'Bild – ' + doorKey + '-Türchen' : 'Bild – Türchen ' + doorKey;
+        }
+
+        function resolveBildSrc(rawSrc) {
+            if (!rawSrc) return '';
+            const trimmed = String(rawSrc).trim();
+            if (/^(https?:\/\/|data:|\/)/i.test(trimmed)) return trimmed;
+            if (BILDER_ORDNER && !trimmed.startsWith(BILDER_ORDNER)) {
+                return BILDER_ORDNER.replace(/\/?$/, '/') + trimmed.replace(/^\/+/, '');
+            }
+            return trimmed;
         }
 
         function loadUsedIndices() {
@@ -174,8 +188,9 @@
 
         const item = getBildForDoor(doorKey);
         const imgEl = document.getElementById('bild-img');
-        if (item.src) {
-            imgEl.src = item.src;
+        const resolvedSrc = resolveBildSrc(item.src);
+        if (resolvedSrc) {
+            imgEl.src = resolvedSrc;
         } else {
             imgEl.style.display = 'none';
         }
