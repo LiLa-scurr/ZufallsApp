@@ -371,6 +371,7 @@
 
 <script>
     let selectedDoorNumber = null;
+    let christmasClickCounter = 0;
 
     let snowParticles = [];
     let snowAnimFrame = null;
@@ -427,16 +428,14 @@
         return '❄️';
     }
 
-    // Türchen 6 sowie Test 2 nutzen die Nikolaus-Logik
+    // Türchen 6 (6.12.) erhält exakt die bisherige T3-Funktion
     function isNikolausDoor(doorKey) {
-        const key = String(doorKey);
-        return doorKey === 6 || key === '6' || key === 'Test 2';
+        return doorKey === 6 || String(doorKey) === '6';
     }
 
-    // Türchen 24 sowie Test 3 nutzen die Weihnachtsbaum-Logik
+    // Türchen 24 (24.12.) erhält die neue Weihnachts-Funktion
     function isWeihnachtsbaumDoor(doorKey) {
-        const key = String(doorKey);
-        return doorKey === 24 || key === '24' || key === 'Test 3';
+        return doorKey === 24 || String(doorKey) === '24';
     }
 
     function resumeAdventAudioNow() {
@@ -679,10 +678,10 @@
 
         if (isWeihnachtsbaumDoor(doorKey)) {
             if (promptEl) {
-                promptEl.innerText = 'Weihnachts-Special (wie 24.12.): Alles unbegrenzt möglich!';
+                promptEl.innerText = 'Weihnachten (24.12.): Jedes Mal etwas Neues!';
             }
             if (subtextEl) {
-                subtextEl.innerText = 'Du kannst jeden Knopf beliebig oft drücken und jedes Mal etwas Neues entdecken.';
+                subtextEl.innerText = 'Klicke beliebig oft auf einen Knopf – bei jedem Klick erscheint ein neuer Inhalt.';
             }
             buttons.forEach((btn) => {
                 btn.classList.remove('option-dimmed');
@@ -692,26 +691,15 @@
         }
 
         if (isNikolausDoor(doorKey)) {
-            const hasAnyUsed = usedTypes.length > 0;
             if (promptEl) {
-                promptEl.innerText = hasAnyUsed
-                    ? 'Nikolaus-Special (wie 6.12.): Gewähltes bleibt anzeigbar (' + usedTypes.length + '/4)'
-                    : 'Nikolaus-Special (wie 6.12.): Wähle deine Überraschung';
+                promptEl.innerText = 'Nikolaus (6.12.): Alle Optionen frei wählbar';
             }
             if (subtextEl) {
-                subtextEl.innerText = hasAnyUsed
-                    ? 'Bereits gewählte Sachen kannst du jederzeit wieder ansehen. Noch nicht gewählte sind ausgegraut.'
-                    : 'Du kannst am 6.12. deine gewählten Sachen jederzeit wieder ansehen.';
+                subtextEl.innerText = 'Du kannst jede Option jederzeit öffnen und ansehen.';
             }
             buttons.forEach((btn) => {
-                const type = btn.dataset.choiceType;
-                const alreadyUsed = usedTypes.includes(type);
-                btn.classList.remove('option-dimmed', 'option-chosen');
-                if (alreadyUsed) {
-                    btn.classList.add('option-chosen');
-                } else if (hasAnyUsed) {
-                    btn.classList.add('option-dimmed');
-                }
+                btn.classList.remove('option-dimmed');
+                btn.classList.toggle('option-chosen', usedTypes.includes(btn.dataset.choiceType));
             });
             return;
         }
@@ -917,11 +905,43 @@
         modal.classList.remove('visible');
     }
 
+    // Neue eigene Funktion für Weihnachten (24.12.):
+    // Bei jedem Button-Klick unbegrenzt möglich und jedes Mal ein frischer Aufruf für neuen Inhalt
+    function openChristmasContent(type) {
+        christmasClickCounter += 1;
+        saveDoorChoice(24, type);
+
+        const page = contentPagesByType[type];
+        closeDoorModal();
+
+        if (!page) {
+            alert('Hier öffnet sich dann Türchen 24 mit neuem Inhalt: ' + type.toUpperCase());
+            return;
+        }
+
+        const freshKey = 'xmas_' + Date.now() + '_' + christmasClickCounter + '_' + Math.random().toString(36).slice(2, 8);
+        const overlay = document.getElementById('content-overlay');
+        overlay.innerHTML =
+            '<iframe class="content-frame" src="' +
+            page +
+            '?door=' +
+            encodeURIComponent(freshKey) +
+            '&fresh=' +
+            encodeURIComponent(freshKey) +
+            '"></iframe>';
+        overlay.classList.add('visible');
+    }
+
     function openDoorContent(type) {
         const doorKey = selectedDoorNumber;
-        const usedTypes = getUsedTypesForDoor(doorKey);
 
         if (isWeihnachtsbaumDoor(doorKey)) {
+            openChristmasContent(type);
+            return;
+        }
+
+        // 6.12. (Nikolaus) nutzt die bisherige T3-Funktion ohne Sperre
+        if (isNikolausDoor(doorKey)) {
             saveDoorChoice(doorKey, type);
             const page = contentPagesByType[type];
             closeDoorModal();
@@ -938,32 +958,7 @@
             return;
         }
 
-        if (isNikolausDoor(doorKey)) {
-            const alreadyUsed = usedTypes.includes(type);
-
-            if (!alreadyUsed && usedTypes.length > 0) {
-                document.getElementById('choice-locked-title').innerText = 'Noch nicht freigeschaltet 😬';
-                document.getElementById('choice-locked-text').innerText =
-                    'Diese Option ist noch nicht freigeschaltet. Bereits gewählte Sachen kannst du weiterhin ansehen – für neue Optionen komm an einem anderen Tag wieder!';
-                document.getElementById('choice-locked-modal').classList.add('visible');
-                return;
-            }
-
-            saveDoorChoice(doorKey, type);
-            const page = contentPagesByType[type];
-            closeDoorModal();
-
-            if (!page) {
-                alert('Hier öffnet sich dann Türchen ' + doorKey + ' mit Inhalt: ' + type.toUpperCase());
-                return;
-            }
-
-            const overlay = document.getElementById('content-overlay');
-            overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey + '_' + type) + '"></iframe>';
-            overlay.classList.add('visible');
-            return;
-        }
-
+        const usedTypes = getUsedTypesForDoor(doorKey);
         const alreadyChosenType = usedTypes[0] || null;
 
         if (alreadyChosenType && alreadyChosenType !== type) {
