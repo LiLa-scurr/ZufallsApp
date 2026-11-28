@@ -121,6 +121,20 @@
             background: #2c3e50 !important;
             color: white !important;
             border: 1px solid #34495e !important;
+            transition: opacity 0.2s ease, filter 0.2s ease, transform 0.15s ease;
+        }
+
+        .option-btn.option-dimmed {
+            opacity: 0.42;
+            filter: grayscale(0.85);
+            background: #26292e !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #cfd8dc !important;
+        }
+
+        .option-btn.option-chosen {
+            border-color: #feb632 !important;
+            box-shadow: 0 0 12px rgba(254, 182, 50, 0.28);
         }
 
         .bonus-option-btn {
@@ -173,7 +187,7 @@
             }
         }
 
-        /* SCHNEEFLOCKEN-EMOJI TÜRNCHEN */
+        /* TÜRNCHEN (STANDARD SCHNEEFLOCKE, 6.12. NIKOLAUS, 24.12. WEIHNACHTSBAUM) */
         .advent-door {
             position: absolute;
             width: 80px;
@@ -189,13 +203,18 @@
         }
 
         .advent-door::before {
-            content: '❄️';
+            content: var(--door-icon, '❄️');
             font-size: 78px;
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             z-index: 1;
             filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+            transition: filter 0.2s ease;
+        }
+
+        .advent-door.door-opened::before {
+            filter: drop-shadow(0 0 10px rgba(254, 182, 50, 0.95));
         }
 
         .advent-door-number {
@@ -207,6 +226,29 @@
             text-align: center;
             line-height: 1.1;
             text-shadow: 0 0 6px #ffffff, 0 0 3px #ffffff, 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .advent-door-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            z-index: 3;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(24, 28, 36, 0.94);
+            border: 2px solid #feb632;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.65);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 15px;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .advent-door.door-opened .advent-door-badge {
+            display: flex;
         }
 
         .advent-door:active {
@@ -283,12 +325,12 @@
     <div id="door-options-modal" class="popup-overlay">
         <div class="popup-content">
             <h2 id="door-modal-title">Türchen</h2>
-            <p class="door-prompt">Nach was ist dir heute?</p>
-            <p style="margin-bottom: 10px;">Du musst dich für eine Sache entscheiden.</p>
-            <button class="option-btn" onclick="openDoorContent('spruch')">💬 Toller Spruch</button>
-            <button class="option-btn" onclick="openDoorContent('bild')">🖼️ Schönes Bild</button>
-            <button class="option-btn" onclick="openDoorContent('sudoku')">🧩 Ein Sudoku</button>
-            <button class="option-btn" onclick="openDoorContent('video')">🎬 Lustiges Video</button>
+            <p id="door-modal-prompt" class="door-prompt">Nach was ist dir heute?</p>
+            <p id="door-modal-subtext" style="margin-bottom: 10px;">Du musst dich für eine Sache entscheiden.</p>
+            <button id="btn-choice-spruch" class="option-btn" data-choice-type="spruch" onclick="openDoorContent('spruch')">💬 Toller Spruch</button>
+            <button id="btn-choice-bild" class="option-btn" data-choice-type="bild" onclick="openDoorContent('bild')">🖼️ Schönes Bild</button>
+            <button id="btn-choice-sudoku" class="option-btn" data-choice-type="sudoku" onclick="openDoorContent('sudoku')">🧩 Ein Sudoku</button>
+            <button id="btn-choice-video" class="option-btn" data-choice-type="video" onclick="openDoorContent('video')">🎬 Lustiges Video</button>
             <button id="door-bonus-btn" class="bonus-option-btn" onclick="openBonusFromDoor()">🎁 Überraschung</button>
             <button onclick="closeDoorModal()" style="background: #545456; color: white; margin-top: 15px;">Abbrechen</button>
         </div>
@@ -297,8 +339,8 @@
     <!-- POPUP WENN BEREITS EINE ANDERE MÖGLICHKEIT GEWÄHLT WURDE -->
     <div id="choice-locked-modal" class="popup-overlay">
         <div class="popup-content">
-            <h2>Heute hast du dich schon entschieden 😬</h2>
-            <p id="choice-locked-text">Morgen kannst du eine andere Auswahl treffen.</p>
+            <h2>Schon eine andere Wahl getroffen 😬</h2>
+            <p id="choice-locked-text">Für dieses Türchen hast du dich schon entschieden. Komm an einem anderen Tag wieder!</p>
             <button onclick="closeChoiceLockedModal()">Okay</button>
         </div>
     </div>
@@ -366,6 +408,19 @@
         sudoku: 'Ein Sudoku',
         video: 'Lustiges Video'
     };
+
+    const optionEmojisByType = {
+        spruch: '💬',
+        bild: '🖼️',
+        sudoku: '🧩',
+        video: '🎬'
+    };
+
+    function getDoorMainIcon(num) {
+        if (num === 6) return '🎅';
+        if (num === 24) return '🎄';
+        return '❄️';
+    }
 
     function resumeAdventAudioNow() {
         const audio = document.getElementById('advent-audio');
@@ -520,11 +575,73 @@
                 localStorage.setItem(DOOR_CHOICE_STORAGE_KEY, JSON.stringify(choices));
             } catch (e) {}
         }
+        refreshAllDoorBadges();
     }
 
     function getChosenTypeForDoor(doorKey) {
         const choices = loadDoorChoices();
         return choices[String(doorKey)] || null;
+    }
+
+    function applyDoorVisualState(doorEl, num) {
+        const chosenType = getChosenTypeForDoor(num);
+        const badgeEl = doorEl.querySelector('.advent-door-badge');
+
+        if (chosenType) {
+            doorEl.classList.add('door-opened');
+            if (badgeEl) {
+                badgeEl.innerText = optionEmojisByType[chosenType] || '✨';
+            }
+        } else {
+            doorEl.classList.remove('door-opened');
+            if (badgeEl) {
+                badgeEl.innerText = '';
+            }
+        }
+    }
+
+    function refreshAllDoorBadges() {
+        const doors = document.querySelectorAll('#advent-canvas .advent-door');
+        doors.forEach((doorEl) => {
+            const rawNum = doorEl.dataset.doorKey;
+            const parsedNum = /^\d+$/.test(rawNum) ? Number(rawNum) : rawNum;
+            applyDoorVisualState(doorEl, parsedNum);
+        });
+    }
+
+    function updateModalChoiceButtons(alreadyChosenType) {
+        const promptEl = document.getElementById('door-modal-prompt');
+        const subtextEl = document.getElementById('door-modal-subtext');
+        const buttons = document.querySelectorAll('#door-options-modal .option-btn[data-choice-type]');
+
+        if (alreadyChosenType) {
+            const chosenLabel = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
+            if (promptEl) {
+                promptEl.innerText = 'Bereits gewählt: ' + chosenLabel;
+            }
+            if (subtextEl) {
+                subtextEl.innerText = 'Die anderen Optionen sind ausgegraut. Ein Klick darauf zeigt dir, wann du wiederkommen kannst.';
+            }
+        } else {
+            if (promptEl) {
+                promptEl.innerText = 'Nach was ist dir heute?';
+            }
+            if (subtextEl) {
+                subtextEl.innerText = 'Du musst dich für eine Sache entscheiden.';
+            }
+        }
+
+        buttons.forEach((btn) => {
+            const type = btn.dataset.choiceType;
+            btn.classList.remove('option-dimmed', 'option-chosen');
+            if (alreadyChosenType) {
+                if (type === alreadyChosenType) {
+                    btn.classList.add('option-chosen');
+                } else {
+                    btn.classList.add('option-dimmed');
+                }
+            }
+        });
     }
 
     function shuffleArray(array) {
@@ -564,6 +681,13 @@
     function createDoorElement(num, x, y) {
         const door = document.createElement('div');
         door.className = 'advent-door';
+        door.dataset.doorKey = String(num);
+        door.style.setProperty('--door-icon', `'${getDoorMainIcon(num)}'`);
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'advent-door-badge';
+        badgeSpan.setAttribute('aria-hidden', 'true');
+        door.appendChild(badgeSpan);
 
         const numSpan = document.createElement('span');
         numSpan.className = 'advent-door-number';
@@ -572,6 +696,8 @@
 
         door.style.left = x + 'px';
         door.style.top = y + 'px';
+
+        applyDoorVisualState(door, num);
 
         door.onclick = () => openDoorOptions(num);
         return door;
@@ -669,6 +795,7 @@
 
         selectedDoorNumber = num;
         document.getElementById('door-modal-title').innerText = isTestDoor(num) ? num + '-Türchen' : 'Türchen ' + num;
+        updateModalChoiceButtons(getChosenTypeForDoor(num));
         updateDoorBonusButton(num);
         const modal = document.getElementById('door-options-modal');
         modal.classList.add('visible');
@@ -694,7 +821,7 @@
         if (alreadyChosenType && alreadyChosenType !== type) {
             const chosenName = optionLabelsByType[alreadyChosenType] || alreadyChosenType;
             document.getElementById('choice-locked-text').innerText =
-                'Du hast dich heute schon für „' + chosenName + '“ entschieden. Morgen kannst du eine andere Auswahl treffen.';
+                'Du hast dich für dieses Türchen schon für „' + chosenName + '“ entschieden. Komm an einem anderen Tag wieder, wenn du etwas anderes ausprobieren möchtest!';
             document.getElementById('choice-locked-modal').classList.add('visible');
             return;
         }
@@ -718,6 +845,7 @@
         const overlay = document.getElementById('content-overlay');
         overlay.classList.remove('visible');
         overlay.innerHTML = '';
+        refreshAllDoorBadges();
     }
 
     // Alias falls sudoku.html closeSudokuOverlay() aufruft
