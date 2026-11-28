@@ -63,6 +63,8 @@
         <button type="button" class="spruch-btn" onclick="closeOverlay()">Schließen</button>
     </div>
 
+    <audio id="spruch-audio" preload="auto" playsinline style="display:none;"></audio>
+
     <script>
         // Unterordner fuer deine Sprachaufnahmen (mit Schraegstrich am Ende)
         const SPRUECHE_AUDIO_ORDNER = 'sprueche/';
@@ -97,9 +99,11 @@
         const doorKey = params.get('door') || 'default';
         const isFresh = params.has('fresh');
 
-        let spruchAudioEl = null;
+        const spruchAudioEl = document.getElementById('spruch-audio');
         let spruchAudioTimer = null;
         let isClosingOverlay = false;
+        let hasFinishedOnce = false;
+        let retryOnNextTap = false;
 
         if (params.get('door')) {
             document.getElementById('spruch-title').innerText =
@@ -126,6 +130,9 @@
         }
 
         function stopSpruchAudio() {
+            isClosingOverlay = true;
+            retryOnNextTap = false;
+
             if (spruchAudioTimer) {
                 clearTimeout(spruchAudioTimer);
                 spruchAudioTimer = null;
@@ -137,54 +144,68 @@
                     spruchAudioEl.removeAttribute('src');
                     spruchAudioEl.load();
                 } catch (e) {}
-                spruchAudioEl = null;
             }
             setParentMusicDucking(false);
         }
 
+        function startPlaybackNow() {
+            if (isClosingOverlay || hasFinishedOnce || !spruchAudioEl || !spruchAudioEl.src) return;
+
+            retryOnNextTap = false;
+            setParentMusicDucking(true);
+
+            const playPromise = spruchAudioEl.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.then(() => {
+                    retryOnNextTap = false;
+                }).catch(() => {
+                    retryOnNextTap = true;
+                    setParentMusicDucking(false);
+                });
+            }
+        }
+
         function playSpruchAudioOnceAfterDelay(rawAudio, delayMs = 500) {
             const src = resolveAudioSrc(rawAudio);
-            if (!src) return;
+            if (!src || !spruchAudioEl) return;
 
-            stopSpruchAudio();
+            isClosingOverlay = false;
+            hasFinishedOnce = false;
+            retryOnNextTap = false;
 
-            const audio = document.createElement('audio');
-            audio.preload = 'auto';
-            audio.loop = false;
-            audio.playsInline = true;
-            audio.src = src;
-            spruchAudioEl = audio;
+            spruchAudioEl.loop = false;
+            spruchAudioEl.src = src;
+            spruchAudioEl.load();
 
-            const onDuckStart = () => {
-                if (!isClosingOverlay && spruchAudioEl === audio) {
+            spruchAudioEl.onplay = () => {
+                if (!isClosingOverlay && !hasFinishedOnce) {
                     setParentMusicDucking(true);
                 }
             };
 
-            const onDuckEnd = () => {
-                if (spruchAudioEl === audio) {
-                    spruchAudioEl = null;
-                }
+            spruchAudioEl.onended = () => {
+                hasFinishedOnce = true;
+                retryOnNextTap = false;
                 setParentMusicDucking(false);
             };
 
-            audio.addEventListener('play', onDuckStart);
-            audio.addEventListener('pause', onDuckEnd, { once: true });
-            audio.addEventListener('ended', onDuckEnd, { once: true });
-            audio.addEventListener('error', onDuckEnd, { once: true });
+            spruchAudioEl.onerror = () => {
+                retryOnNextTap = false;
+                setParentMusicDucking(false);
+            };
 
             spruchAudioTimer = setTimeout(() => {
                 spruchAudioTimer = null;
-                if (isClosingOverlay || spruchAudioEl !== audio) return;
-
-                const playPromise = audio.play();
-                if (playPromise && typeof playPromise.catch === 'function') {
-                    playPromise.catch(() => {
-                        onDuckEnd();
-                    });
-                }
+                startPlaybackNow();
             }, delayMs);
         }
+
+        document.addEventListener('pointerdown', (event) => {
+            if (event.target && event.target.closest('.spruch-btn')) return;
+            if (retryOnNextTap && !hasFinishedOnce && !isClosingOverlay) {
+                startPlaybackNow();
+            }
+        }, { passive: true });
 
         function loadUsedIndices() {
             try {
@@ -292,7 +313,6 @@
 
             const doorMap = loadDoorMap();
 
-            // Wenn dieses Türchen schon einen gespeicherten Spruch hat, genau diesen wieder zeigen
             if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
                 const savedIndex = doorMap[door];
                 if (Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < SPRUECHE.length) {
@@ -300,7 +320,6 @@
                 }
             }
 
-            // Sonst einen noch nicht verwendeten Spruch zufällig ziehen
             const chosenIndex = pickNextIndex(used, -1);
             doorMap[door] = chosenIndex;
             saveDoorMap(doorMap);
@@ -309,7 +328,6 @@
         }
 
         function closeOverlay() {
-            isClosingOverlay = true;
             stopSpruchAudio();
 
             if (window.parent && typeof window.parent.closeContentOverlay === 'function') {
