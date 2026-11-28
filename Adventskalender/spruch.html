@@ -43,6 +43,31 @@
             font-style: italic;
         }
 
+        .button-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .play-btn {
+            background: #feb632;
+            color: #1e1e1e;
+            font-size: 15px;
+            padding: 11px 26px;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(254, 182, 50, 0.25);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .spruch-btn {
             background: #ffffff;
             color: #1e1e1e;
@@ -57,23 +82,42 @@
     </style>
 </head>
 <body>
+
     <div class="spruch-box">
         <h2 id="spruch-title">Spruch</h2>
+
         <p id="spruch-text" class="spruch-text"></p>
-        <button type="button" class="spruch-btn" onclick="closeOverlay()">Schließen</button>
+
+        <div class="button-row">
+            <button
+                type="button"
+                id="play-audio-btn"
+                class="play-btn"
+                onclick="toggleSpruchAudio()">
+                ▶ Abspielen
+            </button>
+
+            <button
+                type="button"
+                class="spruch-btn"
+                onclick="closeOverlay()">
+                Schließen
+            </button>
+        </div>
     </div>
 
     <audio id="spruch-audio" preload="auto" playsinline style="display:none;"></audio>
 
     <script>
-        // Unterordner fuer deine Sprachaufnahmen (mit Schraegstrich am Ende)
+        // Unterordner für deine Sprachaufnahmen
         const SPRUECHE_AUDIO_ORDNER = 'sprueche/';
 
-        // Jedem Spruch ist genau eine Audiodatei zugeordnet:
-        // { text: '...', audio: 'spruch1.mp3' } (oder 'sprueche/spruch1.mp3' / URL)
+        // Jedem Spruch ist genau eine Audiodatei zugeordnet
         const SPRUECHE = [
             { text: "Eine Oma muss man schlagen.", audio: "deleteme.mp3" },
-            /*{ text: "Wer anderen eine Grube gräbt, der hat ein Gruben-Grab-Gerät.", audio: "spruch2.mp3" },
+
+            /*
+            { text: "Wer anderen eine Grube gräbt, der hat ein Gruben-Grab-Gerät.", audio: "spruch2.mp3" },
             { text: "Wer anderen eine Bratwurst brät, der hat ein Bratwurst-Brat-Gerät.", audio: "spruch3.mp3" },
             { text: "Morgenstund hat Blei im Arsch.", audio: "spruch4.mp3" },
             { text: "Wer das liest ist eine Maus.", audio: "spruch5.mp3" },
@@ -87,7 +131,9 @@
             { text: "Habiiiiibpb!", audio: "spruch13.mp3" },
             { text: "Wallah billah schwöre sogar Digga. Noch son Ding, Penisring.", audio: "spruch14.mp3" },
             { text: "Gude Guido, geiler Garten!", audio: "spruch15.mp3" },
-            { text: "Liebe Lotti, lässige Lamas liegen lustigerweise lebenslang!", audio: "spruch16.mp3" },*/
+            { text: "Liebe Lotti, lässige Lamas liegen lustigerweise lebenslang!", audio: "spruch16.mp3" },
+            */
+
             { text: "Lasagne lässt Linsensuppe locker links liegen.", audio: "spruch17.mp3" }
         ];
 
@@ -100,16 +146,19 @@
         const isFresh = params.has('fresh');
 
         const spruchAudioEl = document.getElementById('spruch-audio');
-        let spruchAudioTimer = null;
+        const playButton = document.getElementById('play-audio-btn');
+
         let isClosingOverlay = false;
         let hasFinishedOnce = false;
-        let retryOnNextTap = false;
 
         if (params.get('door')) {
             document.getElementById('spruch-title').innerText =
-                String(doorKey).startsWith('Test') ? 'Spruch – ' + doorKey + '-Türchen' : 'Spruch – Türchen ' + doorKey;
+                String(doorKey).startsWith('Test')
+                    ? 'Spruch – ' + doorKey + '-Türchen'
+                    : 'Spruch – Türchen ' + doorKey;
         }
 
+        // Hintergrundmusik steuern
         function setParentMusicDucking(ducked) {
             if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
                 window.parent.setVideoMusicDucking(ducked);
@@ -118,25 +167,103 @@
             }
         }
 
+        // Audiodateipfad ermitteln
         function resolveAudioSrc(rawAudio) {
             if (!rawAudio) return '';
+
             const trimmed = String(rawAudio).trim();
+
             if (!trimmed) return '';
-            if (/^(https?:\/\/|data:|\/)/i.test(trimmed)) return trimmed;
+
+            if (/^(https?:\/\/|data:|\/)/i.test(trimmed)) {
+                return trimmed;
+            }
+
             if (SPRUECHE_AUDIO_ORDNER && !trimmed.startsWith(SPRUECHE_AUDIO_ORDNER)) {
                 return SPRUECHE_AUDIO_ORDNER.replace(/\/?$/, '/') + trimmed.replace(/^\/+/, '');
             }
+
             return trimmed;
         }
 
+        // Audio vorbereiten, aber NICHT automatisch abspielen
+        function prepareSpruchAudio(rawAudio) {
+            const src = resolveAudioSrc(rawAudio);
+
+            if (!src || !spruchAudioEl) {
+                playButton.disabled = true;
+                playButton.innerText = 'Keine Audio vorhanden';
+                return;
+            }
+
+            isClosingOverlay = false;
+            hasFinishedOnce = false;
+
+            spruchAudioEl.loop = false;
+
+            spruchAudioEl.onplay = () => {
+                if (!isClosingOverlay) {
+                    playButton.innerText = '⏸ Pause';
+                    setParentMusicDucking(true);
+                }
+            };
+
+            spruchAudioEl.onpause = () => {
+                if (!isClosingOverlay && !hasFinishedOnce) {
+                    playButton.innerText = '▶ Weiter';
+                    setParentMusicDucking(false);
+                }
+            };
+
+            spruchAudioEl.onended = () => {
+                hasFinishedOnce = true;
+                playButton.innerText = '↻ Erneut abspielen';
+                setParentMusicDucking(false);
+            };
+
+            spruchAudioEl.onerror = () => {
+                playButton.disabled = true;
+                playButton.innerText = 'Audio nicht verfügbar';
+                setParentMusicDucking(false);
+            };
+
+            spruchAudioEl.src = src;
+            spruchAudioEl.load();
+
+            playButton.disabled = false;
+            playButton.innerText = '▶ Abspielen';
+        }
+
+        // Play-Button: Starten, Pausieren und erneutes Abspielen
+        async function toggleSpruchAudio() {
+            if (isClosingOverlay || !spruchAudioEl || !spruchAudioEl.src) {
+                return;
+            }
+
+            // Wenn Audio gerade läuft: pausieren
+            if (!spruchAudioEl.paused) {
+                spruchAudioEl.pause();
+                return;
+            }
+
+            // Wenn Audio bereits beendet wurde: von vorne starten
+            if (hasFinishedOnce || spruchAudioEl.ended) {
+                spruchAudioEl.currentTime = 0;
+                hasFinishedOnce = false;
+            }
+
+            try {
+                await spruchAudioEl.play();
+            } catch (e) {
+                setParentMusicDucking(false);
+                playButton.innerText = '▶ Erneut versuchen';
+            }
+        }
+
+        // Audio vollständig stoppen
         function stopSpruchAudio() {
             isClosingOverlay = true;
-            retryOnNextTap = false;
 
-            if (spruchAudioTimer) {
-                clearTimeout(spruchAudioTimer);
-                spruchAudioTimer = null;
-            }
             if (spruchAudioEl) {
                 try {
                     spruchAudioEl.pause();
@@ -145,75 +272,26 @@
                     spruchAudioEl.load();
                 } catch (e) {}
             }
+
             setParentMusicDucking(false);
         }
 
-        function startPlaybackNow() {
-            if (isClosingOverlay || hasFinishedOnce || !spruchAudioEl || !spruchAudioEl.src) return;
-
-            retryOnNextTap = false;
-            setParentMusicDucking(true);
-
-            const playPromise = spruchAudioEl.play();
-            if (playPromise && typeof playPromise.then === 'function') {
-                playPromise.then(() => {
-                    retryOnNextTap = false;
-                }).catch(() => {
-                    retryOnNextTap = true;
-                    setParentMusicDucking(false);
-                });
-            }
-        }
-
-        function playSpruchAudioOnceAfterDelay(rawAudio, delayMs = 500) {
-            const src = resolveAudioSrc(rawAudio);
-            if (!src || !spruchAudioEl) return;
-
-            isClosingOverlay = false;
-            hasFinishedOnce = false;
-            retryOnNextTap = false;
-
-            spruchAudioEl.loop = false;
-            spruchAudioEl.src = src;
-            spruchAudioEl.load();
-
-            spruchAudioEl.onplay = () => {
-                if (!isClosingOverlay && !hasFinishedOnce) {
-                    setParentMusicDucking(true);
-                }
-            };
-
-            spruchAudioEl.onended = () => {
-                hasFinishedOnce = true;
-                retryOnNextTap = false;
-                setParentMusicDucking(false);
-            };
-
-            spruchAudioEl.onerror = () => {
-                retryOnNextTap = false;
-                setParentMusicDucking(false);
-            };
-
-            spruchAudioTimer = setTimeout(() => {
-                spruchAudioTimer = null;
-                startPlaybackNow();
-            }, delayMs);
-        }
-
-        document.addEventListener('pointerdown', (event) => {
-            if (event.target && event.target.closest('.spruch-btn')) return;
-            if (retryOnNextTap && !hasFinishedOnce && !isClosingOverlay) {
-                startPlaybackNow();
-            }
-        }, { passive: true });
-
+        // Gespeicherte Sprüche laden
         function loadUsedIndices() {
             try {
                 const raw = localStorage.getItem(USED_STORAGE_KEY);
+
                 if (!raw) return [];
+
                 const parsed = JSON.parse(raw);
+
                 if (!Array.isArray(parsed)) return [];
-                return parsed.filter(idx => Number.isInteger(idx) && idx >= 0 && idx < SPRUECHE.length);
+
+                return parsed.filter(idx =>
+                    Number.isInteger(idx) &&
+                    idx >= 0 &&
+                    idx < SPRUECHE.length
+                );
             } catch (e) {
                 return [];
             }
@@ -225,12 +303,21 @@
             } catch (e) {}
         }
 
+        // Türchen-Zuordnung laden
         function loadDoorMap() {
             try {
                 const raw = localStorage.getItem(DOOR_MAP_STORAGE_KEY);
+
                 if (!raw) return {};
+
                 const parsed = JSON.parse(raw);
-                return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+
+                return (
+                    parsed &&
+                    typeof parsed === 'object' &&
+                    !Array.isArray(parsed)
+                ) ? parsed : {};
+
             } catch (e) {
                 return {};
             }
@@ -246,6 +333,7 @@
             try {
                 const raw = sessionStorage.getItem(LAST_FRESH_STORAGE_KEY);
                 const num = Number(raw);
+
                 return Number.isInteger(num) ? num : -1;
             } catch (e) {
                 return -1;
@@ -258,13 +346,16 @@
             } catch (e) {}
         }
 
+        // Nächsten Spruch auswählen
         function pickNextIndex(used, avoidIndex) {
             let currentUsed = Array.isArray(used) ? [...used] : [];
+
             if (currentUsed.length >= SPRUECHE.length) {
                 currentUsed = [];
             }
 
             let candidates = [];
+
             for (let i = 0; i < SPRUECHE.length; i++) {
                 if (!currentUsed.includes(i)) {
                     candidates.push(i);
@@ -273,33 +364,51 @@
 
             if (candidates.length > 1 && avoidIndex >= 0) {
                 const withoutLast = candidates.filter(i => i !== avoidIndex);
+
                 if (withoutLast.length > 0) {
                     candidates = withoutLast;
                 }
             }
 
-            const chosenIndex = candidates[Math.floor(Math.random() * candidates.length)];
+            const chosenIndex = candidates[
+                Math.floor(Math.random() * candidates.length)
+            ];
+
             currentUsed.push(chosenIndex);
             saveUsedIndices(currentUsed);
+
             return chosenIndex;
         }
 
+        // Spruchdaten vereinheitlichen
         function normalizeSpruchEntry(entry) {
             if (typeof entry === 'string') {
-                return { text: entry, audio: '' };
+                return {
+                    text: entry,
+                    audio: ''
+                };
             }
+
             if (entry && typeof entry === 'object') {
                 return {
                     text: entry.text || '',
                     audio: entry.audio || ''
                 };
             }
-            return { text: '', audio: '' };
+
+            return {
+                text: '',
+                audio: ''
+            };
         }
 
+        // Spruch für das jeweilige Türchen ermitteln
         function getSpruchForDoor(door, freshMode) {
             if (SPRUECHE.length === 0) {
-                return { text: "Keine Sprüche hinterlegt.", audio: "" };
+                return {
+                    text: "Keine Sprüche hinterlegt.",
+                    audio: ""
+                };
             }
 
             const used = loadUsedIndices();
@@ -307,7 +416,9 @@
             if (freshMode) {
                 const lastFresh = getLastFreshIndex();
                 const chosenIndex = pickNextIndex(used, lastFresh);
+
                 setLastFreshIndex(chosenIndex);
+
                 return normalizeSpruchEntry(SPRUECHE[chosenIndex]);
             }
 
@@ -315,18 +426,25 @@
 
             if (Object.prototype.hasOwnProperty.call(doorMap, door)) {
                 const savedIndex = doorMap[door];
-                if (Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < SPRUECHE.length) {
+
+                if (
+                    Number.isInteger(savedIndex) &&
+                    savedIndex >= 0 &&
+                    savedIndex < SPRUECHE.length
+                ) {
                     return normalizeSpruchEntry(SPRUECHE[savedIndex]);
                 }
             }
 
             const chosenIndex = pickNextIndex(used, -1);
+
             doorMap[door] = chosenIndex;
             saveDoorMap(doorMap);
 
             return normalizeSpruchEntry(SPRUECHE[chosenIndex]);
         }
 
+        // Overlay schließen
         function closeOverlay() {
             stopSpruchAudio();
 
@@ -337,12 +455,19 @@
             }
         }
 
+        // Audio beim Verlassen der Seite stoppen
         window.addEventListener('pagehide', stopSpruchAudio);
         window.addEventListener('beforeunload', stopSpruchAudio);
 
+        // Aktuellen Spruch laden
         const activeSpruch = getSpruchForDoor(doorKey, isFresh);
-        document.getElementById('spruch-text').innerText = '„' + activeSpruch.text + '“';
-        playSpruchAudioOnceAfterDelay(activeSpruch.audio, 500);
+
+        document.getElementById('spruch-text').innerText =
+            '„' + activeSpruch.text + '“';
+
+        // Nur vorbereiten – Wiedergabe erst nach Klick auf den Play-Button!
+        prepareSpruchAudio(activeSpruch.audio);
+
     </script>
 </body>
 </html>
