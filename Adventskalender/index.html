@@ -213,6 +213,10 @@
             transition: filter 0.2s ease;
         }
 
+        .advent-door[data-door-key="24"]::before {
+            font-size: 100px;
+        }
+
         .advent-door.door-opened::before {
             filter: drop-shadow(0 0 10px rgba(254, 182, 50, 0.95));
         }
@@ -417,7 +421,7 @@
     };
 
     function getDoorMainIcon(num) {
-        if (num === 6) return '🎅';
+        if (num === 6) return '🎅🏼';
         if (num === 24) return '🎄';
         return '❄️';
     }
