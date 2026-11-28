@@ -167,7 +167,7 @@
                     audioSourceNode = audioContext.createMediaElementSource(spruchAudioEl);
                     audioGainNode = audioContext.createGain();
         
-                    audioGainNode.gain.value = 2.0;
+                    audioGainNode.gain.value = 3.0;         //Lautstärke
         
                     audioSourceNode.connect(audioGainNode);
                     audioGainNode.connect(audioContext.destination);
