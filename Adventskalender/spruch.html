@@ -170,111 +170,13 @@
         const spruchAudioEl = document.getElementById('spruch-audio');
         const playButton = document.getElementById('play-audio-btn');
 
-
-        // =====================================================
-        // AUDIO-VERSTÄRKUNG
-        // =====================================================
-
-        let audioContext = null;
-        let audioSourceNode = null;
-        let audioGainNode = null;
-        let audioCompressorNode = null;
-
-        let audioBoostActive = false;
-
-
-        // Hier kannst du die Verstärkung einstellen.
-        // 1.0 = normale Lautstärke
-        // 2.0 = stärkere Verstärkung
-        // 5.0 = sehr starke Verstärkung
-
-        const AUDIO_GAIN = 5.0;
-
-
-        async function activateAudioBoost() {
-
-            const AudioContextClass =
-                window.AudioContext || window.webkitAudioContext;
-
-            if (!AudioContextClass) {
-                console.warn('Web Audio API wird nicht unterstützt.');
-                return false;
-            }
-
-            try {
-
-                // Audio-System nur einmal erstellen
-                if (!audioContext) {
-
-                    audioContext = new AudioContextClass();
-
-                    audioSourceNode =
-                        audioContext.createMediaElementSource(spruchAudioEl);
-
-                    audioGainNode = audioContext.createGain();
-
-                    audioCompressorNode =
-                        audioContext.createDynamicsCompressor();
-
-
-                    // Lautstärke verstärken
-                    audioGainNode.gain.value = AUDIO_GAIN;
-
-
-                    // Dynamik-Kompressor
-                    audioCompressorNode.threshold.value = -6;
-                    audioCompressorNode.knee.value = 0;
-                    audioCompressorNode.ratio.value = 12;
-                    audioCompressorNode.attack.value = 0.003;
-                    audioCompressorNode.release.value = 0.25;
-
-
-                    // Audio-Verarbeitung verbinden
-                    audioSourceNode.connect(audioGainNode);
-
-                    audioGainNode.connect(audioCompressorNode);
-
-                    audioCompressorNode.connect(audioContext.destination);
-
-                }
-
-
-                // AudioContext aktivieren
-                if (audioContext.state !== 'running') {
-
-                    await audioContext.resume();
-
-                }
-
-
-                const isActive = audioContext.state === 'running';
-
-                console.log(
-                    'Audio-Verstärkung:',
-                    isActive ? AUDIO_GAIN + 'x aktiviert' : 'nicht aktiv'
-                );
-
-                return isActive;
-
-
-            } catch (e) {
-
-                console.error('Audio-Verstärkung fehlgeschlagen:', e);
-
-                return false;
-
-            }
-
-        }
-
-
-        // =====================================================
-        // STATUS
-        // =====================================================
-
         let isClosingOverlay = false;
         let hasFinishedOnce = false;
 
+
+        // =====================================================
+        // TITEL ANPASSEN
+        // =====================================================
 
         if (params.get('door')) {
 
@@ -288,15 +190,22 @@
 
         // =====================================================
         // HINTERGRUNDMUSIK STEUERN
+        // VERWENDET DIE GLEICHE FUNKTION WIE VIDEO.HTML
         // =====================================================
 
         function setParentMusicDucking(ducked) {
 
-            if (window.parent && typeof window.parent.setVideoMusicDucking === 'function') {
+            if (
+                window.parent &&
+                typeof window.parent.setVideoMusicDucking === 'function'
+            ) {
 
                 window.parent.setVideoMusicDucking(ducked);
 
-            } else if (window.parent && typeof window.parent.setVideoMusicFade === 'function') {
+            } else if (
+                window.parent &&
+                typeof window.parent.setVideoMusicFade === 'function'
+            ) {
 
                 window.parent.setVideoMusicFade(ducked);
 
@@ -338,6 +247,7 @@
 
         // =====================================================
         // AUDIO VORBEREITEN
+        // AUDIO STARTET NICHT AUTOMATISCH
         // =====================================================
 
         function prepareSpruchAudio(rawAudio) {
@@ -355,19 +265,18 @@
 
             isClosingOverlay = false;
             hasFinishedOnce = false;
-            audioBoostActive = false;
 
             spruchAudioEl.loop = false;
 
 
-            // Audio startet
+            // Wenn die Sprachaufnahme startet:
+            // Hintergrundmusik wie bei einem Video herunterregeln.
+
             spruchAudioEl.onplay = () => {
 
                 if (!isClosingOverlay) {
 
-                    playButton.innerText = audioBoostActive
-                        ? '⏸ Pause (verstärkt)'
-                        : '⏸ Pause (normal)';
+                    playButton.innerText = '⏸ Pause';
 
                     setParentMusicDucking(true);
 
@@ -376,40 +285,39 @@
             };
 
 
-            // Audio pausiert
+            // Wenn die Sprachaufnahme pausiert wird:
+            // Hintergrundmusik bleibt weiterhin heruntergeregelt.
+
             spruchAudioEl.onpause = () => {
 
                 if (!isClosingOverlay && !hasFinishedOnce) {
 
                     playButton.innerText = '▶ Weiter';
 
-                    setParentMusicDucking(false);
-
                 }
 
             };
 
 
-            // Audio beendet
+            // Wenn die Sprachaufnahme fertig ist:
+            // Hintergrundmusik bleibt weiterhin heruntergeregelt.
+
             spruchAudioEl.onended = () => {
 
                 hasFinishedOnce = true;
 
                 playButton.innerText = '↻ Erneut abspielen';
 
-                setParentMusicDucking(false);
-
             };
 
 
             // Fehler bei der Audiodatei
+
             spruchAudioEl.onerror = () => {
 
                 playButton.disabled = true;
 
                 playButton.innerText = 'Audio nicht verfügbar';
-
-                setParentMusicDucking(false);
 
             };
 
@@ -443,6 +351,7 @@
 
 
             // Wenn Audio läuft: pausieren
+
             if (!spruchAudioEl.paused) {
 
                 spruchAudioEl.pause();
@@ -454,6 +363,7 @@
 
             // Wenn Audio bereits beendet wurde:
             // wieder von vorne beginnen
+
             if (hasFinishedOnce || spruchAudioEl.ended) {
 
                 spruchAudioEl.currentTime = 0;
@@ -465,48 +375,13 @@
 
             try {
 
-                // Beide Aktionen direkt beim Klick starten,
-                // damit die Browser-Freigabe erhalten bleibt.
+                // Normale Wiedergabe ohne Lautstärkeverstärkung
 
-                const boostPromise = activateAudioBoost();
-
-                const playPromise = spruchAudioEl.play();
-
-
-                // Wiedergabe starten
-                await playPromise;
-
-
-                // Warten, bis die Verstärkung aktiviert wurde
-                audioBoostActive = await boostPromise;
-
-
-                // Button aktualisieren
-                if (!spruchAudioEl.paused) {
-
-                    playButton.innerText = audioBoostActive
-                        ? '⏸ Pause (verstärkt)'
-                        : '⏸ Pause (normal)';
-
-                }
-
-
-                if (!audioBoostActive) {
-
-                    console.warn(
-                        'Audio läuft ohne zusätzliche Verstärkung.'
-                    );
-
-                }
-
+                await spruchAudioEl.play();
 
             } catch (e) {
 
                 console.error('Audio-Wiedergabe fehlgeschlagen:', e);
-
-                audioBoostActive = false;
-
-                setParentMusicDucking(false);
 
                 playButton.innerText = '▶ Erneut versuchen';
 
@@ -517,13 +392,12 @@
 
         // =====================================================
         // AUDIO BEIM SCHLIESSEN STOPPEN
+        // UND HINTERGRUNDMUSIK WIEDERHERSTELLEN
         // =====================================================
 
         function stopSpruchAudio() {
 
             isClosingOverlay = true;
-
-            audioBoostActive = false;
 
             if (spruchAudioEl) {
 
@@ -540,6 +414,8 @@
                 } catch (e) {}
 
             }
+
+            // Hintergrundmusik wieder auf normale Lautstärke setzen
 
             setParentMusicDucking(false);
 
@@ -841,7 +717,10 @@
 
         function closeOverlay() {
 
+            // Audio stoppen und Hintergrundmusik wiederherstellen
+
             stopSpruchAudio();
+
 
             if (
                 window.parent &&
@@ -886,7 +765,7 @@
 
 
         // Audio nur vorbereiten.
-        // Sie startet erst beim Klick auf den Play-Button.
+        // Wiedergabe erst nach Klick auf den Play-Button.
 
         prepareSpruchAudio(activeSpruch.audio);
 
