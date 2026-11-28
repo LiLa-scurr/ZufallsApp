@@ -428,14 +428,16 @@
         return '❄️';
     }
 
-    // Türchen 6 (6.12.) erhält exakt die bisherige T3-Funktion
+    // Türchen 6 sowie Test 2 nutzen die Nikolaus-Funktion
     function isNikolausDoor(doorKey) {
-        return doorKey === 6 || String(doorKey) === '6';
+        const key = String(doorKey);
+        return doorKey === 6 || key === '6' || key === 'Test 2';
     }
 
-    // Türchen 24 (24.12.) erhält die neue Weihnachts-Funktion
+    // Türchen 24 sowie Test 3 nutzen die Weihnachts-Funktion
     function isWeihnachtsbaumDoor(doorKey) {
-        return doorKey === 24 || String(doorKey) === '24';
+        const key = String(doorKey);
+        return doorKey === 24 || key === '24' || key === 'Test 3';
     }
 
     function resumeAdventAudioNow() {
@@ -678,7 +680,7 @@
 
         if (isWeihnachtsbaumDoor(doorKey)) {
             if (promptEl) {
-                promptEl.innerText = 'Weihnachten (24.12.): Jedes Mal etwas Neues!';
+                promptEl.innerText = 'Weihnachten (wie 24.12.): Jedes Mal etwas Neues!';
             }
             if (subtextEl) {
                 subtextEl.innerText = 'Klicke beliebig oft auf einen Knopf – bei jedem Klick erscheint ein neuer Inhalt.';
@@ -692,7 +694,7 @@
 
         if (isNikolausDoor(doorKey)) {
             if (promptEl) {
-                promptEl.innerText = 'Nikolaus (6.12.): Alle Optionen frei wählbar';
+                promptEl.innerText = 'Nikolaus (wie 6.12.): Alle Optionen frei wählbar';
             }
             if (subtextEl) {
                 subtextEl.innerText = 'Du kannst jede Option jederzeit öffnen und ansehen.';
@@ -905,17 +907,17 @@
         modal.classList.remove('visible');
     }
 
-    // Neue eigene Funktion für Weihnachten (24.12.):
+    // Weihnachts-Funktion (für Türchen 24 sowie aktuell zum Testen für T3):
     // Bei jedem Button-Klick unbegrenzt möglich und jedes Mal ein frischer Aufruf für neuen Inhalt
-    function openChristmasContent(type) {
+    function openChristmasContent(doorKey, type) {
         christmasClickCounter += 1;
-        saveDoorChoice(24, type);
+        saveDoorChoice(doorKey, type);
 
         const page = contentPagesByType[type];
         closeDoorModal();
 
         if (!page) {
-            alert('Hier öffnet sich dann Türchen 24 mit neuem Inhalt: ' + type.toUpperCase());
+            alert('Hier öffnet sich dann Türchen ' + doorKey + ' mit neuem Inhalt: ' + type.toUpperCase());
             return;
         }
 
@@ -936,11 +938,11 @@
         const doorKey = selectedDoorNumber;
 
         if (isWeihnachtsbaumDoor(doorKey)) {
-            openChristmasContent(type);
+            openChristmasContent(doorKey, type);
             return;
         }
 
-        // 6.12. (Nikolaus) nutzt die bisherige T3-Funktion ohne Sperre
+        // Nikolaus-Funktion (für Türchen 6 sowie aktuell zum Testen für T2)
         if (isNikolausDoor(doorKey)) {
             saveDoorChoice(doorKey, type);
             const page = contentPagesByType[type];
