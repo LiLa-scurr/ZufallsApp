@@ -429,13 +429,13 @@
         return '❄️';
     }
 
-    // Türchen 6 sowie Test 2 nutzen die Nikolaus-Funktion
+    // Türchen 6 sowie Test 2 nutzen die Nikolaus-Funktion (fester Inhalt pro Türchen/Option, kein &fresh)
     function isNikolausDoor(doorKey) {
         const key = String(doorKey);
         return doorKey === 6 || key === '6' || key === 'Test 2';
     }
 
-    // Türchen 24 sowie Test 3 nutzen die Weihnachts-Funktion
+    // Türchen 24 sowie Test 3 nutzen die Weihnachts-Funktion (jedes Mal neuer Inhalt über &fresh)
     function isWeihnachtsbaumDoor(doorKey) {
         const key = String(doorKey);
         return doorKey === 24 || key === '24' || key === 'Test 3';
@@ -909,7 +909,7 @@
     }
 
     // Weihnachts-Funktion (für Türchen 24 sowie aktuell zum Testen für T3):
-    // ?door= bleibt sauber auf dem Türchen (z. B. 24), während ?fresh=... für jedes Mal neu zieht
+    // ?door= bleibt sauber auf dem Türchen, während ?fresh=... für jedes Mal neu zieht
     function openChristmasContent(doorKey, type) {
         christmasClickCounter += 1;
         saveDoorChoice(doorKey, type);
@@ -943,7 +943,8 @@
             return;
         }
 
-        // Nikolaus-Funktion (für Türchen 6 sowie aktuell zum Testen für T2)
+        // Nikolaus-Funktion (für Türchen 6 sowie aktuell zum Testen für T2):
+        // Kein &fresh-Parameter, damit beim wiederholten Öffnen immer derselbe Inhalt erscheint
         if (isNikolausDoor(doorKey)) {
             saveDoorChoice(doorKey, type);
             const page = contentPagesByType[type];
@@ -954,9 +955,8 @@
                 return;
             }
 
-            const freshToken = Date.now() + '_' + Math.random().toString(36).slice(2, 7);
             const overlay = document.getElementById('content-overlay');
-            overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey) + '&fresh=' + encodeURIComponent(freshToken) + '"></iframe>';
+            overlay.innerHTML = '<iframe class="content-frame" src="' + page + '?door=' + encodeURIComponent(doorKey) + '"></iframe>';
             overlay.classList.add('visible');
             return;
         }
